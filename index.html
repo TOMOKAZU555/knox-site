@@ -142,6 +142,16 @@
   .track .num{font-size:.92rem;font-weight:600;min-width:22px}
   .track .tt{font-size:1.04rem;letter-spacing:.02em;color:#ddd5cc}
   .track:hover .tt{color:var(--bone)}
+  .track.has-audio{cursor:pointer}
+  .playbtn{margin-left:auto;flex:0 0 auto;width:32px;height:32px;border-radius:50%;border:1px solid var(--line-red);background:rgba(200,16,46,.08);color:var(--crimson);display:grid;place-items:center;padding:0;cursor:pointer;transition:background .25s,color .25s,transform .25s}
+  .playbtn svg{width:13px;height:13px;display:block}
+  .playbtn:hover{background:var(--crimson);color:#fff;transform:scale(1.08)}
+  .track.playing .playbtn{background:var(--crimson);color:#fff}
+  .track.playing{background:linear-gradient(90deg,rgba(200,16,46,.12),transparent)}
+  .tprog{position:absolute;left:0;right:0;bottom:0;height:2px;background:transparent;overflow:hidden}
+  .tprog>span{display:block;height:100%;width:0;background:var(--crimson);transition:width .2s linear}
+  .preview-note{text-align:center;margin:6px 0 30px;font-size:.78rem;letter-spacing:.12em;color:var(--ash)}
+  .preview-note b{color:var(--crimson);font-weight:600}
 
   /* ---------- members ---------- */
   #members{background:var(--bg)}
@@ -241,18 +251,19 @@
         <span>自主制作</span>
       </div>
     </div>
+    <p class="preview-note"><b>▶</b> のついた曲は試聴できます</p>
     <div class="tracks">
       <div class="track"><span class="num">01</span><span class="tt">First Contact</span></div>
-      <div class="track"><span class="num">02</span><span class="tt">気まぐれカオス</span></div>
+      <div class="track has-audio" data-src="kimagure.mp3"><span class="num">02</span><span class="tt">気まぐれカオス</span><button class="playbtn" type="button" aria-label="試聴 気まぐれカオス"></button><span class="tprog"><span></span></span></div>
       <div class="track"><span class="num">03</span><span class="tt">幻想のラッシュ</span></div>
       <div class="track"><span class="num">04</span><span class="tt">終焉のロンド</span></div>
-      <div class="track"><span class="num">05</span><span class="tt">激情のダンス</span></div>
+      <div class="track has-audio" data-src="gekijo.mp3"><span class="num">05</span><span class="tt">激情のダンス</span><button class="playbtn" type="button" aria-label="試聴 激情のダンス"></button><span class="tprog"><span></span></span></div>
       <div class="track"><span class="num">06</span><span class="tt">君へドライブ</span></div>
       <div class="track"><span class="num">07</span><span class="tt">Laughter and Destruction</span></div>
       <div class="track"><span class="num">08</span><span class="tt">刹那のステージ</span></div>
       <div class="track"><span class="num">09</span><span class="tt">遠雷のスコール</span></div>
       <div class="track"><span class="num">10</span><span class="tt">忘却のダイス</span></div>
-      <div class="track"><span class="num">11</span><span class="tt">最後のライブ</span></div>
+      <div class="track has-audio" data-src="saigo.mp3"><span class="num">11</span><span class="tt">最後のライブ</span><button class="playbtn" type="button" aria-label="試聴 最後のライブ"></button><span class="tprog"><span></span></span></div>
     </div>
   </div>
 </section>
@@ -324,6 +335,31 @@
   var bar=document.getElementById('bar');
   function onScroll(){ if(window.scrollY>40){bar.classList.add('solid')}else{bar.classList.remove('solid')} }
   window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+
+  // ---- 試聴プレイヤー ----
+  (function(){
+    var PLAY='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+    var PAUSE='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+    var audio=new Audio(); audio.preload='none';
+    var current=null;
+    function reset(row){ row.classList.remove('playing'); var b=row.querySelector('.playbtn'); if(b)b.innerHTML=PLAY; var p=row.querySelector('.tprog>span'); if(p)p.style.width='0'; }
+    document.querySelectorAll('.track.has-audio').forEach(function(row){
+      var btn=row.querySelector('.playbtn'); btn.innerHTML=PLAY;
+      function toggle(){
+        var src=row.getAttribute('data-src');
+        if(current===row && !audio.paused){ audio.pause(); return; }
+        if(current && current!==row) reset(current);
+        if(current!==row){ audio.src=src; current=row; }
+        audio.play().then(function(){ row.classList.add('playing'); btn.innerHTML=PAUSE; }).catch(function(){});
+      }
+      btn.addEventListener('click',function(e){ e.stopPropagation(); toggle(); });
+      row.addEventListener('click',toggle);
+    });
+    audio.addEventListener('pause',function(){ if(current){ current.classList.remove('playing'); var b=current.querySelector('.playbtn'); if(b)b.innerHTML=PLAY; } });
+    audio.addEventListener('play',function(){ if(current){ current.classList.add('playing'); var b=current.querySelector('.playbtn'); if(b)b.innerHTML=PAUSE; } });
+    audio.addEventListener('timeupdate',function(){ if(current&&audio.duration){ var p=current.querySelector('.tprog>span'); if(p)p.style.width=(audio.currentTime/audio.duration*100)+'%'; } });
+    audio.addEventListener('ended',function(){ if(current){ reset(current); } });
+  })();
 </script>
 </body>
 </html>
