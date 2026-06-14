@@ -1,0 +1,34 @@
+🎙️ あさイチAIラジオ（あさラジ）
+毎朝お届けする、AIがお送りする朝のラジオ番組。
+ニュース・天気・雑学・お便りコーナーなど盛りだくさん☀️
+オープニング・エンディングには、ガールズハードロックバンド KNOX のオリジナル楽曲を使用🎸
+
+▼ KNOX 公式サイト
+https://knox-band.jp
+▼ KNOX SNS
+Instagram： https://www.instagram.com/knox_band.jp
+YouTube： https://www.youtube.com/@knox-band-Official
+
+#あさラジ #あさイチAIラジオ #AIラジオ #朝活 #作業用BGM #KNOX #ガールズバンド
+
+━━━━━━━━━━━━━━
+♪ 楽曲：KNOX
+━━━━━━━━━━━━━━
+熱く切ないサウンドを奏でる女性ボーカルのハードロックバンド。
+
+KNOX
+Vo. tomo ／ Gt. kana ／ Ba. emi ／ Dr. hazu ／ Gt. ryo
+作詞作曲：tomo
+
+━━━━━━━━━━━━━━
+使用音声（敬称略）
+━━━━━━━━━━━━━━
+ハル・ナギ：Tαkoeプロジェクト
+　http://wedst.pj.ymhk.jp/tos.html
+かりん／ほのか／わかな／れな／もえ／さつき／すみれ：
+　声は x.com/dopoiro のAI（リアボVC）
+しげる：阿井田茂（CV：古山キリヲ）
+ふみや：黒神／サガワフミヤ
+ルクス：Lux（制作：Lami／lami.zip）
+音声合成：Aivis Cloud API
+映画情報：OMDb API
