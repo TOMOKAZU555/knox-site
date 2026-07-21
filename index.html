@@ -243,6 +243,7 @@
   @media(max-width:760px){ .mvgrid{grid-template-columns:1fr;gap:42px} }
   .mvitem{margin:0}
   .mvgrid .video{max-width:none}
+  .mvgrid .mvitem:last-child:nth-child(odd){grid-column:1/-1;max-width:640px;width:100%;margin:0 auto}
   .mvcap{text-align:center;margin-top:16px;font-family:"Shippori Mincho",serif;font-weight:600;font-size:1.08rem;letter-spacing:.04em;color:var(--bone)}
   .mvcap .mvc-sub{display:block;font-family:"Cinzel",serif;font-size:.56rem;letter-spacing:.24em;text-transform:uppercase;color:var(--ash);margin-top:6px}
 </style>
@@ -395,6 +396,10 @@
       <div class="rule"></div>
     </div>
     <div class="mvgrid">
+      <figure class="mvitem">
+        <div class="video"><iframe src="https://www.youtube.com/embed/QHce4hTynOw" title="KNOX - 終幕のアリア" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+        <figcaption class="mvcap">終幕のアリア<span class="mvc-sub">Music Video</span></figcaption>
+      </figure>
       <figure class="mvitem">
         <div class="video"><iframe src="https://www.youtube.com/embed/frZpmdE1Ang" title="KNOX - 激情のダンス" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
         <figcaption class="mvcap">激情のダンス<span class="mvc-sub">Music Video</span></figcaption>
