@@ -227,6 +227,7 @@
     </div>
     <div class="field">
       <div class="field-buttons">
+        <button type="button" class="btn" id="driveSignInBtn">Googleにサインイン</button>
         <button type="button" class="btn btn-accent" id="driveUpBtn">Driveへ保存</button>
         <button type="button" class="btn" id="driveDownBtn">Driveから取り込み</button>
       </div>
@@ -412,6 +413,7 @@ var app = {
       self.openDrive();
       self.showToast('クライアントIDを保存しました');
     });
+    document.getElementById('driveSignInBtn').addEventListener('click', function() { self.driveSignIn(); });
     document.getElementById('driveUpBtn').addEventListener('click', function() { self.driveUpload(); });
     document.getElementById('driveDownBtn').addEventListener('click', function() { self.driveDownload(); });
 
@@ -1093,9 +1095,18 @@ var app = {
     if(this.drive.isLocalFile()) st.push('⚠ いまローカルのファイルを開いています。Drive連携は knox-band.jp に置いてからお使いください。');
     st.push(this.drive.clientId() ? 'クライアントID: 設定済み' : 'クライアントID: 未設定');
     st.push('保存先: Google ドライブの「KNOX Player」フォルダ');
+    st.push('サインイン: ' + (this.drive.token && Date.now() < this.drive.expiresAt ? '済み' : 'まだ'));
     st.push('曲数: ' + this.state.tracks.length + '曲（音源あり ' + this.state.tracks.filter(function(t) { return t.hasAudio !== false; }).length + '曲）');
     document.getElementById('driveStatus').innerHTML = st.join('<br>');
     document.getElementById('driveBackdrop').classList.add('open');
+  },
+
+  driveSignIn: function() {
+    var self = this;
+    this.driveLog('Googleにサインインしています…');
+    this.drive.auth(function() {
+      self.driveLog('サインインできました。「Driveへ保存」または「Driveから取り込み」を押してください');
+    }, function(m) { self.driveLog('エラー: ' + m); });
   },
 
   // 端末 → Drive
@@ -1104,6 +1115,13 @@ var app = {
     var fail = function(m) { self.driveLog('エラー: ' + m); };
     if(!this.state.tracks.length) { this.driveLog('曲がありません'); return; }
     this.driveLog('Driveに接続しています…');
+    // 認証のポップアップはクリック直後でないとブラウザに塞がれるので、ここで先に済ませる
+    this.drive.auth(function() { self.driveUploadGo(); }, fail);
+  },
+
+  driveUploadGo: function() {
+    var self = this;
+    var fail = function(m) { self.driveLog('エラー: ' + m); };
 
     var queue = this.state.tracks.filter(function(t) { return t.hasAudio !== false && !t.driveAudioId; });
     var i = 0;
@@ -1145,6 +1163,12 @@ var app = {
     var self = this;
     var fail = function(m) { self.driveLog('エラー: ' + m); };
     this.driveLog('Driveを確認しています…');
+    this.drive.auth(function() { self.driveDownloadGo(); }, fail);
+  },
+
+  driveDownloadGo: function() {
+    var self = this;
+    var fail = function(m) { self.driveLog('エラー: ' + m); };
     this.drive.findInFolder(this.drive.LIB_NAME, function(fileId) {
       if(!fileId) { self.driveLog('Driveにデータがありません。先に「Driveへ保存」をしてください'); return; }
       self.drive.getJson(fileId, function(lib) {
