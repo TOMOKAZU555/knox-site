@@ -1,0 +1,1366 @@
+<title>KNOX PLAYER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Shippori+Mincho:wght@500;600&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0a0a0c;--surface:#141416;--surface-2:#1e1e22;--border:#2a2a2f;--text:#e8e8eb;--text-dim:#a0a0a6;--accent:#dc143c;--accent-strong:#b8102a;--accent-ink:#fff5f6;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Noto Sans JP",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;padding:0;overflow:hidden;}
+  .app{display:flex;height:100vh;flex-direction:column;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 18px;border-bottom:1px solid var(--border);background:var(--surface);}
+  .brand-mark{font-family:"Cinzel",serif;font-weight:700;font-size:20px;letter-spacing:.08em;color:var(--accent);}
+  .topbar-btns{display:flex;gap:8px;}
+  .btn{appearance:none;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:8px 13px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-accent{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+  .main-layout{display:flex;flex:1;min-height:0;}
+  .sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;}
+  .sidebar-scroll{flex:1;overflow-y:auto;padding:12px 8px;}
+  .sidebar-footer{padding:8px;border-top:1px solid var(--border);}
+  .album-group{margin-bottom:12px;}
+  .album-header{display:flex;align-items:center;gap:6px;padding:8px 10px;font-size:12px;font-weight:600;color:var(--text-dim);cursor:pointer;user-select:none;}
+  .album-header:hover{color:var(--text);}
+  .album-toggle{width:16px;display:flex;align-items:center;justify-content:center;font-size:11px;transition:transform .2s;}
+  .album-toggle.open{transform:rotate(90deg);}
+  .album-title{flex:1;}
+  .tracks-in-album{max-height:0;overflow:hidden;transition:max-height .3s;}
+  .tracks-in-album.open{max-height:2000px;}
+  .track-item{padding:6px 8px;border-radius:6px;font-size:12.5px;color:var(--text-dim);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all .12s;display:flex;justify-content:space-between;align-items:center;}
+  .track-item:hover{background:var(--surface-2);color:var(--text);}
+  .track-item.active{background:var(--accent);color:var(--accent-ink);font-weight:600;}
+  .track-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+  .track-edit{cursor:pointer;opacity:0;transition:opacity .12s;padding:2px 4px;}
+  .track-item:hover .track-edit{opacity:1;}
+  .main-content{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+  .stage{flex:1;display:flex;flex-direction:row;gap:18px;padding:20px;min-height:0;overflow:hidden;}
+  .now-panel{width:330px;flex:0 0 auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:11px;overflow-y:auto;}
+  .panel-cover{width:100%;aspect-ratio:1/1;max-width:100%;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-strong));background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;}
+  .panel-cover span{font-size:56px;color:var(--accent-ink);opacity:.55;}
+  .panel-badge{display:flex;align-items:center;gap:8px;font-family:"Cinzel",serif;font-size:11px;letter-spacing:.2em;color:var(--accent);}
+  .panel-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1.6s ease-in-out infinite;flex:0 0 auto;}
+  .panel-badge.idle{color:var(--text-dim);}
+  .panel-badge.idle .dot{background:var(--text-dim);animation:none;}
+  .panel-title{font-family:"Cinzel",serif;font-size:23px;font-weight:700;line-height:1.3;color:var(--text);word-break:break-word;}
+  .panel-album{font-size:12px;color:var(--text-dim);margin-top:-6px;}
+  .panel-play{justify-content:center;padding:11px;font-size:13.5px;font-weight:700;}
+  .panel-meta{font-size:11.5px;color:var(--text-dim);line-height:1.85;border-top:1px solid var(--border);padding-top:10px;}
+  .panel-tools{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:10px;}
+  .panel-tools .btn{font-size:11px;padding:5px 9px;}
+  @media(max-width:900px){.stage{flex-direction:column;overflow-y:auto;}.now-panel{width:auto;flex-direction:row;align-items:center;gap:14px;}.panel-cover{width:90px;flex:0 0 auto;}.panel-tools{margin-top:0;border:0;padding-top:0;}}
+  .stage-empty{margin:auto;text-align:center;color:var(--text-dim);}
+  .stage-empty h2{font-family:"Cinzel",serif;font-size:18px;color:var(--text);margin:0 0 8px;}
+  .now-playing{display:flex;gap:16px;background:var(--surface);border-radius:12px;padding:16px;border:1px solid var(--border);position:relative;}
+  .now-cover{width:72px;height:72px;border-radius:10px;flex:0 0 auto;background:linear-gradient(135deg,var(--accent),var(--accent-strong));background-size:cover;background-position:center;}
+  .now-meta{flex:1;}
+  .now-title{font-family:"Cinzel",serif;font-size:20px;font-weight:600;color:var(--text);margin:0 0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .now-album{font-size:12px;color:var(--text-dim);margin:0;}
+  .now-actions{position:absolute;top:16px;right:16px;display:flex;gap:6px;}
+  .now-actions .btn{padding:4px 8px;font-size:11px;}
+  .lyrics-stage{flex:1;position:relative;border-radius:12px;background:var(--surface);border:1px solid var(--border);overflow:hidden;}
+  .lyrics-viewport{position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;overflow:hidden;}
+  .lyrics-track{display:flex;flex-direction:column;align-items:center;transition:transform .35s cubic-bezier(.22,.9,.32,1);width:100%;padding:38vh 20px;will-change:transform;}
+  .lyrics-line{font-family:"Shippori Mincho",serif;font-size:18px;line-height:2.1;color:var(--text);opacity:.28;transition:opacity .35s;text-align:center;width:100%;cursor:text;user-select:text;}
+  .lyrics-line.near{opacity:.58;}
+  .lyrics-line.current{opacity:1;font-size:26px;font-weight:700;color:var(--accent);}
+  .lyrics-line.upcoming{opacity:1;font-size:26px;font-weight:700;color:var(--text);}
+  .lyrics-fade{position:absolute;left:0;right:0;height:48px;pointer-events:none;z-index:10;}
+  .lyrics-fade.top{top:0;background:linear-gradient(var(--surface),transparent);}
+  .lyrics-fade.bottom{bottom:0;background:linear-gradient(transparent,var(--surface));}
+  .lyrics-none{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-dim);}
+  .interlude-badge{position:absolute;top:14px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:10px;z-index:11;font-family:"Cinzel",serif;font-size:15px;letter-spacing:.2em;color:var(--accent);background:var(--surface);border:1px solid var(--accent);border-radius:999px;padding:9px 22px;animation:pulse 1.6s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:.45;}50%{opacity:1;}}
+  .transport{background:var(--surface);border-top:1px solid var(--border);padding:14px 18px;display:flex;flex-direction:column;gap:10px;}
+  .seek-row{display:flex;align-items:center;gap:8px;}
+  .time-label{font-size:11px;color:var(--text-dim);font-variant-numeric:tabular-nums;width:32px;}
+  .time-label.end{text-align:right;}
+  input[type="range"]{-webkit-appearance:none;appearance:none;flex:1;height:4px;border-radius:2px;background:var(--border);outline:none;}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--accent);cursor:pointer;}
+  input[type="range"]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;}
+  .controls-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  .transport-btns{display:flex;align-items:center;gap:8px;}
+  .play-btn{width:42px;height:42px;border-radius:50%;background:var(--accent);color:var(--accent-ink);border:none;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .play-btn:hover{background:var(--accent-strong);}
+  .skip-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .skip-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .vol-row{display:flex;align-items:center;gap:8px;color:var(--text-dim);font-size:12px;}
+  .vol-row input{width:80px;}
+  .dropzone-hint{width:100%;border:1.5px dashed var(--border);border-radius:8px;padding:10px 8px;text-align:center;color:var(--text-dim);font-size:11.5px;cursor:pointer;background:transparent;font-family:inherit;}
+  .dropzone-hint:hover{border-color:var(--accent);color:var(--accent);}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:100;}
+  .modal-backdrop.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:90%;max-width:520px;max-height:80vh;overflow-y:auto;padding:20px;}
+  .modal h2{font-family:"Cinzel",serif;font-size:17px;margin:0 0 14px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:12px;color:var(--text-dim);font-weight:600;margin-bottom:4px;}
+  .field input,.field textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-family:inherit;font-size:13px;}
+  .field textarea{min-height:120px;resize:vertical;font-family:"Noto Sans JP",monospace;}
+  .field-buttons{display:flex;gap:6px;margin-top:4px;}
+  .field-buttons .btn{flex:1;font-size:11px;padding:6px 8px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+  .sync-overlay{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;z-index:90;}
+  .sync-overlay.open{display:flex;}
+  .sync-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);}
+  .sync-head h2{font-family:"Cinzel",serif;font-size:15px;margin:0;}
+  .sync-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:20px;}
+  .sync-hint{font-size:12px;color:var(--text-dim);letter-spacing:.05em;}
+  .sync-stage{position:relative;width:100%;max-width:680px;height:230px;overflow:hidden;}
+  .sync-stage::before,.sync-stage::after{content:"";position:absolute;left:0;right:0;height:60px;pointer-events:none;z-index:2;}
+  .sync-stage::before{top:0;background:linear-gradient(var(--bg),transparent);}
+  .sync-stage::after{bottom:0;background:linear-gradient(transparent,var(--bg));}
+  .sync-track{display:flex;flex-direction:column;align-items:center;width:100%;padding:115px 20px;transition:transform .3s cubic-bezier(.22,.9,.32,1);}
+  #syncTrack .lyrics-line{opacity:1;color:var(--text);}
+  #syncTrack .lyrics-line.near{opacity:1;}
+  #syncTrack .lyrics-line.upcoming{font-size:18px;font-weight:500;color:var(--text);}
+  #syncTrack .lyrics-line.current::before{content:"▶";color:var(--accent);font-size:16px;margin-right:16px;vertical-align:middle;}
+  .sync-tap{width:160px;height:160px;border-radius:50%;background:var(--accent);color:var(--accent-ink);border:none;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+  .sync-tap:active{transform:scale(.96);}
+  .sync-foot{display:flex;justify-content:center;gap:8px;padding:16px 18px 20px;}
+  .sync-progress{font-size:11px;color:var(--text-dim);text-align:center;padding:8px 18px;}
+  .drop-overlay{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;background:rgba(220,20,60,.12);pointer-events:none;}
+  .drop-overlay.active{display:flex;}
+  .drop-overlay-inner{border:3px dashed var(--accent);border-radius:18px;background:var(--surface);padding:32px 40px;text-align:center;}
+  .drop-overlay-inner strong{display:block;font-family:"Cinzel",serif;font-size:24px;color:var(--accent);margin-bottom:6px;}
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border);padding:12px 16px;border-radius:8px;font-size:12px;color:var(--text);z-index:1000;animation:slideIn .3s;}
+  @keyframes slideIn{from{transform:translateX(400px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+</style>
+
+<div class="app">
+  <div class="topbar">
+    <span class="brand-mark">KNOX</span>
+    <div class="topbar-btns">
+      <button class="btn" id="driveBtn">Drive</button>
+      <button class="btn" id="backupBtn" title="全曲の歌詞と同期データを1ファイルに書き出す">バックアップ</button>
+      <button class="btn" id="restoreBtn" title="バックアップから復元する">復元</button>
+      <button class="btn btn-accent" id="openAddBtn">+ 追加</button>
+    </div>
+  </div>
+
+  <div class="main-layout">
+    <div class="sidebar">
+      <div class="sidebar-scroll" id="sidebarScroll"></div>
+      <div class="sidebar-footer">
+        <button type="button" class="dropzone-hint" id="dropzoneHint">ドラッグ<br>または選択</button>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <main class="stage" id="stage">
+        <div class="stage-empty">
+          <h2>曲がありません</h2>
+          <p>左から選んでください</p>
+        </div>
+      </main>
+
+      <div class="transport">
+        <div class="seek-row">
+          <span class="time-label" id="currentTime">0:00</span>
+          <input type="range" min="0" max="100" value="0" id="seekBar">
+          <span class="time-label end" id="duration">0:00</span>
+        </div>
+        <div class="controls-row">
+          <div class="transport-btns">
+            <button class="skip-btn" id="prevBtn">⏮</button>
+            <button class="play-btn" id="playBtn">▶</button>
+            <button class="skip-btn" id="nextBtn">⏭</button>
+            <button class="skip-btn" id="loopBtn">🔁</button>
+          </div>
+          <div class="vol-row">
+            🔊 <input type="range" min="0" max="100" value="70" id="volumeSlider">
+          </div>
+          <button class="btn" id="syncBtn" style="display:none;">同期</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<audio id="player" preload="metadata"></audio>
+<input type="file" id="fileInput" accept="audio/*" multiple style="display:none">
+<input type="file" id="jsonInput" accept=".json,application/json" style="display:none">
+<div class="drop-overlay" id="dropOverlay"><div class="drop-overlay-inner"><strong>DROP</strong></div></div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h2>曲を編集</h2>
+    <form id="trackForm">
+      <div class="field">
+        <label for="f-title">曲名</label>
+        <input type="text" id="f-title" required>
+      </div>
+      <div class="field">
+        <label for="f-album">アルバム</label>
+        <input type="text" id="f-album">
+      </div>
+      <div class="field">
+        <label for="f-cover">ジャケット</label>
+        <input type="file" id="f-cover" accept="image/*">
+      </div>
+      <div class="field">
+        <label for="f-lyrics">歌詞</label>
+        <textarea id="f-lyrics" placeholder="1行ずつ歌詞を入力"></textarea>
+        <div class="field-buttons">
+          <button type="button" class="btn" id="clearLyricsBtn">クリア</button>
+          <button type="button" class="btn" id="clearSyncBtn">同期データを消す</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="deleteBtn" style="margin-right:auto;">削除</button>
+        <button type="button" class="btn" id="cancelBtn">キャンセル</button>
+        <button type="submit" class="btn btn-accent">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="driveBackdrop">
+  <div class="modal">
+    <h2>Google Drive 同期</h2>
+    <div class="field">
+      <label>状態</label>
+      <div id="driveStatus" style="font-size:12.5px;color:var(--text-dim);line-height:1.8;"></div>
+    </div>
+    <div class="field" id="driveIdField" style="display:none;">
+      <label for="f-clientid">Google クライアントID</label>
+      <input type="text" id="f-clientid" placeholder="xxxxxxxx.apps.googleusercontent.com">
+      <div class="field-buttons"><button type="button" class="btn" id="saveClientIdBtn">保存</button></div>
+    </div>
+    <div class="field">
+      <div class="field-buttons">
+        <button type="button" class="btn btn-accent" id="driveUpBtn">Driveへ保存</button>
+        <button type="button" class="btn" id="driveDownBtn">Driveから取り込み</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>ログ</label>
+      <div id="driveLog" style="font-size:11.5px;color:var(--text-dim);line-height:1.75;max-height:180px;overflow-y:auto;white-space:pre-wrap;"></div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="driveCloseBtn">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div class="sync-overlay" id="syncOverlay">
+  <div class="sync-head">
+    <h2>歌詞タイミング同期</h2>
+    <button class="btn" id="syncCloseBtn" style="background:transparent;border:none;color:var(--text-dim);">✕</button>
+  </div>
+  <div class="sync-progress" id="syncProgress"></div>
+  <div class="sync-body">
+    <div class="sync-stage"><div class="sync-track" id="syncTrack"></div></div>
+    <div class="sync-hint" id="syncHint">白い行が歌われた瞬間にタップ</div>
+    <button class="sync-tap" id="syncTapBtn">タップ</button>
+    <button class="btn" id="syncInterludeBtn" style="padding:12px 28px;font-size:14px;">♪ 間奏スタート</button>
+  </div>
+  <div class="sync-foot">
+    <button class="btn" id="syncUndoBtn">◀ 1行戻る（曲も戻る）</button>
+    <button class="btn" id="syncSkipBtn">1行スキップ ▶</button>
+    <button class="btn" id="syncRestartBtn">最初から</button>
+  </div>
+</div>
+
+<script>
+var app = {
+  db: null,
+  state: {
+    tracks: [],
+    currentId: null,
+    playingId: null,
+    audioUrl: null,
+    loopMode: 0,
+    sync: null,
+    editingId: null,
+    covers: {}
+  },
+  albums: ['ARRANGEMENT', 'ORIGINALS', 'SINGLES', 'Others'],
+
+  init: function() {
+    var self = this;
+    var dbReq = indexedDB.open('KnoxDB', 1);
+
+    dbReq.onupgradeneeded = function(e) {
+      var db = e.target.result;
+      if(!db.objectStoreNames.contains('tracks')) {
+        db.createObjectStore('tracks', {keyPath: 'id'});
+      }
+    };
+
+    dbReq.onsuccess = function(e) {
+      self.db = e.target.result;
+      self.loadData(function() {
+        self.setupListeners();
+        self.render();
+      });
+    };
+
+    dbReq.onerror = function() {
+      alert('データベース初期化エラー');
+    };
+  },
+
+  setupListeners: function() {
+    var self = this;
+
+    document.getElementById('openAddBtn').addEventListener('click', function() {
+      document.getElementById('fileInput').click();
+    });
+
+    document.getElementById('fileInput').addEventListener('change', function() {
+      self.handleFiles(this.files);
+      this.value = '';
+    });
+
+    document.getElementById('dropzoneHint').addEventListener('click', function() {
+      document.getElementById('fileInput').click();
+    });
+
+    document.addEventListener('dragenter', function(e) {
+      if(e.dataTransfer.items) {
+        for(var i = 0; i < e.dataTransfer.items.length; i++) {
+          if(e.dataTransfer.items[i].kind === 'file') {
+            document.getElementById('dropOverlay').classList.add('active');
+            break;
+          }
+        }
+      }
+    });
+
+    document.addEventListener('dragover', function(e) { e.preventDefault(); });
+    document.addEventListener('dragleave', function() {
+      document.getElementById('dropOverlay').classList.remove('active');
+    });
+
+    document.addEventListener('drop', function(e) {
+      e.preventDefault();
+      document.getElementById('dropOverlay').classList.remove('active');
+      self.handleFiles(e.dataTransfer.files);
+    });
+
+    document.getElementById('playBtn').addEventListener('click', function() {
+      if(!self.state.playingId) { if(self.state.currentId) self.playTrack(self.state.currentId); return; }
+      var audio = document.getElementById('player');
+      if(audio.paused) audio.play().catch(function(){});
+      else audio.pause();
+    });
+
+    document.getElementById('prevBtn').addEventListener('click', function() {
+      var idx = self.state.tracks.findIndex(function(t) { return t.id === self.state.playingId; });
+      if(idx > 0) self.playTrack(self.state.tracks[idx - 1].id);
+    });
+
+    document.getElementById('nextBtn').addEventListener('click', function() {
+      var idx = self.state.tracks.findIndex(function(t) { return t.id === self.state.playingId; });
+      if(idx >= 0 && idx < self.state.tracks.length - 1) self.playTrack(self.state.tracks[idx + 1].id);
+    });
+
+    document.getElementById('loopBtn').addEventListener('click', function() {
+      self.state.loopMode = (self.state.loopMode + 1) % 3;
+      this.style.color = self.state.loopMode > 0 ? 'var(--accent)' : 'var(--text)';
+    });
+
+    document.getElementById('volumeSlider').addEventListener('change', function() {
+      document.getElementById('player').volume = this.value / 100;
+    });
+
+    var audio = document.getElementById('player');
+    audio.addEventListener('timeupdate', function() {
+      document.getElementById('currentTime').textContent = self.fmtTime(this.currentTime);
+      if(!audio.seeking) document.getElementById('seekBar').value = (this.currentTime / this.duration) * 100 || 0;
+      self.updateLyricsHighlight();
+    });
+
+    audio.addEventListener('loadedmetadata', function() {
+      document.getElementById('duration').textContent = self.fmtTime(this.duration);
+    });
+
+    audio.addEventListener('play', function() {
+      document.getElementById('playBtn').textContent = '⏸';
+    });
+
+    audio.addEventListener('pause', function() {
+      document.getElementById('playBtn').textContent = '▶';
+    });
+
+    audio.addEventListener('ended', function() {
+      var idx = self.state.tracks.findIndex(function(t) { return t.id === self.state.playingId; });
+      if(self.state.loopMode === 2) {
+        audio.currentTime = 0;
+        audio.play().catch(function(){});
+      } else if(self.state.loopMode === 1) {
+        if(idx >= 0 && idx < self.state.tracks.length - 1) {
+          self.playTrack(self.state.tracks[idx + 1].id);
+        } else if(idx === self.state.tracks.length - 1) {
+          self.playTrack(self.state.tracks[0].id);
+        }
+      }
+    });
+
+    document.getElementById('seekBar').addEventListener('change', function() {
+      audio.currentTime = (this.value / 100) * audio.duration;
+    });
+
+    document.getElementById('driveBtn').addEventListener('click', function() { self.openDrive(); });
+    document.getElementById('driveCloseBtn').addEventListener('click', function() {
+      document.getElementById('driveBackdrop').classList.remove('open');
+    });
+    document.getElementById('saveClientIdBtn').addEventListener('click', function() {
+      var v = document.getElementById('f-clientid').value.trim();
+      if(!v) { alert('クライアントIDを入れてください'); return; }
+      self.drive.setClientId(v);
+      self.drive.tokenClient = null;
+      self.openDrive();
+      self.showToast('クライアントIDを保存しました');
+    });
+    document.getElementById('driveUpBtn').addEventListener('click', function() { self.driveUpload(); });
+    document.getElementById('driveDownBtn').addEventListener('click', function() { self.driveDownload(); });
+
+    document.getElementById('backupBtn').addEventListener('click', function() {
+      self.exportLibrary();
+    });
+
+    document.getElementById('restoreBtn').addEventListener('click', function() {
+      document.getElementById('jsonInput').click();
+    });
+
+    document.getElementById('jsonInput').addEventListener('change', function() {
+      var file = this.files && this.files[0];
+      this.value = '';
+      if(!file) return;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var data;
+        try { data = JSON.parse(e.target.result); }
+        catch(err) { alert('JSONを読めませんでした'); return; }
+        if(data && Array.isArray(data.tracks)) self.restoreLibrary(data);
+        else self.importOneTrack(data);
+      };
+      reader.readAsText(file);
+    });
+
+    document.getElementById('syncBtn').addEventListener('click', function() {
+      self.startSync();
+    });
+
+    document.getElementById('syncTapBtn').addEventListener('click', function() {
+      if(!self.state.sync) return;
+      var currentTime = document.getElementById('player').currentTime;
+
+      // 画面に出ている行の絶対時刻をそのまま記録
+      self.state.sync.marks.push(currentTime);
+      self.state.sync.log.push('line');
+      self.state.sync.index++;
+      self.updateSyncUI();
+    });
+
+    document.getElementById('syncInterludeBtn').addEventListener('click', function() {
+      if(!self.state.sync) return;
+      if(self.state.sync.index === 0) { self.showToast('先に1行目をタップしてください'); return; }
+      self.state.sync.interludes.push(document.getElementById('player').currentTime);
+      self.state.sync.log.push('interlude');
+      self.updateSyncUI();
+    });
+
+    document.getElementById('syncUndoBtn').addEventListener('click', function() {
+      var s = self.state.sync;
+      if(!s || !s.log.length) return;
+      var last = s.log.pop();
+      var t = null;
+      if(last === 'line') { t = s.marks.pop(); s.index--; }
+      else if(last === 'interlude') { t = s.interludes.pop(); }
+      // 曲も戻す。押した3秒前から聴き直せるので、やり直しにならない
+      self.seekSync(t == null ? 0 : t - 3);
+      self.updateSyncUI();
+    });
+
+    document.getElementById('syncSkipBtn').addEventListener('click', function() {
+      var s = self.state.sync;
+      if(!s) return;
+      if(s.index >= s.lines.length) return;
+      var prev = s.base[s.index];
+      if(prev == null) { self.showToast('この先は記録がないのでスキップできません'); return; }
+      // 前回記録した時刻をそのまま採用して次の行へ
+      s.marks.push(prev);
+      s.log.push('line');
+      s.index++;
+      var nextT = s.base[s.index];
+      self.seekSync(nextT == null ? prev : nextT - 3);
+      self.updateSyncUI();
+    });
+
+    document.getElementById('syncRestartBtn').addEventListener('click', function() {
+      if(!self.state.sync) return;
+      self.state.sync.index = 0;
+      self.state.sync.marks = [];
+      self.state.sync.interludes = [];
+      self.state.sync.log = [];
+      self.seekSync(0);
+      self.updateSyncUI();
+    });
+
+    document.getElementById('syncCloseBtn').addEventListener('click', function() {
+      // 途中でも保存する。やめても叩いた分は消えない
+      var s = self.state.sync;
+      if(s && s.marks.length) {
+        var track = self.state.tracks.find(function(t) { return t.id === self.state.currentId; });
+        if(track) {
+          track.syncData = s.marks.slice();
+          track.interludes = s.interludes.slice().sort(function(a, b) { return a - b; });
+          self.saveData();
+          self.showToast(s.marks.length >= s.lines.length
+            ? '同期を保存しました（全' + s.lines.length + '行）'
+            : s.marks.length + ' / ' + s.lines.length + '行を保存しました。次回は続きから再開します');
+        }
+      }
+      self.state.sync = null;
+      document.getElementById('syncOverlay').classList.remove('open');
+      document.getElementById('syncTapBtn').style.display = 'flex';
+      document.getElementById('syncUndoBtn').style.display = 'block';
+      document.getElementById('syncRestartBtn').style.display = 'block';
+      document.getElementById('player').pause();
+    });
+
+    document.getElementById('trackForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var track = self.state.tracks.find(function(t) { return t.id === self.state.editingId; });
+      if(!track) return;
+      track.title = document.getElementById('f-title').value;
+      track.album = document.getElementById('f-album').value;
+      track.lyrics = document.getElementById('f-lyrics').value;
+
+      var coverInput = document.getElementById('f-cover');
+      if(coverInput.files && coverInput.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          self.state.covers[track.id] = e.target.result;
+          self.saveData();
+          self.render();
+          document.getElementById('modalBackdrop').classList.remove('open');
+          self.showToast('保存しました');
+        };
+        reader.readAsDataURL(coverInput.files[0]);
+      } else {
+        self.saveData();
+        self.render();
+        document.getElementById('modalBackdrop').classList.remove('open');
+        self.showToast('保存しました');
+      }
+    });
+
+    document.getElementById('deleteBtn').addEventListener('click', function() {
+      if(!confirm('削除しますか？')) return;
+      var trackId = self.state.editingId;
+      self.state.tracks = self.state.tracks.filter(function(t) { return t.id !== trackId; });
+      delete self.state.covers[trackId];
+      if(self.state.playingId === trackId) {
+        document.getElementById('player').pause();
+        document.getElementById('player').removeAttribute('src');
+        self.state.playingId = null;
+      }
+      if(self.state.currentId === trackId) self.state.currentId = self.state.tracks.length ? self.state.tracks[0].id : null;
+
+      var tx = self.db.transaction('tracks', 'readwrite');
+      tx.objectStore('tracks').delete(trackId);
+
+      self.render();
+      document.getElementById('modalBackdrop').classList.remove('open');
+      self.showToast('削除しました');
+    });
+
+    document.getElementById('cancelBtn').addEventListener('click', function() {
+      document.getElementById('modalBackdrop').classList.remove('open');
+    });
+
+    document.getElementById('clearLyricsBtn').addEventListener('click', function() {
+      if(!confirm('歌詞をクリアしますか？')) return;
+      document.getElementById('f-lyrics').value = '';
+    });
+
+    document.getElementById('clearSyncBtn').addEventListener('click', function() {
+      var track = self.state.tracks.find(function(t) { return t.id === self.state.editingId; });
+      if(!track) return;
+      if(!confirm('この曲の同期データを消しますか？')) return;
+      track.syncData = null;
+      track.interludes = [];
+      self.saveData();
+      self.updateLyricsHighlight();
+      self.showToast('同期データを消しました');
+    });
+
+    document.getElementById('player').volume = 0.7;
+  },
+
+  // 左のリストで選ぶだけ。再生中の曲は止めない
+  selectTrack: function(id) {
+    var self = this;
+    if(!this.state.tracks.some(function(t) { return t.id === id; })) return;
+    this.state.currentId = id;
+    this.render();
+    setTimeout(function() { self.updateLyricsHighlight(); }, 50);
+  },
+
+  // 実際に音を切り替えるのはここだけ
+  playTrack: function(id, callback) {
+    var self = this;
+    var track = this.state.tracks.find(function(t) { return t.id === id; });
+    if(!track) return;
+    this.state.currentId = id;
+
+    var tx = this.db.transaction('tracks', 'readonly');
+    var req = tx.objectStore('tracks').get(id);
+
+    var start = function(blob) {
+      if(self.state.audioUrl) URL.revokeObjectURL(self.state.audioUrl);
+      self.state.audioUrl = URL.createObjectURL(blob);
+      self.state.playingId = id;
+      var audio = document.getElementById('player');
+      audio.src = self.state.audioUrl;
+      self.render();
+      setTimeout(function() { self.updateLyricsHighlight(); }, 50);
+      audio.play().catch(function(){});
+      if(callback) callback();
+    };
+
+    req.onsuccess = function() {
+      var data = req.result;
+      if(data && data.audio) { start(data.audio); return; }
+      // 端末に音源が無くても、Driveにあれば取ってきて再生する
+      if(track.driveAudioId) {
+        self.fetchAudioFromDrive(track, start, function(m) { self.showToast('音源を取得できません: ' + m); });
+        return;
+      }
+      self.showToast('音源がありません。mp3を追加してください');
+    };
+  },
+
+  handleFiles: function(files) {
+    var self = this;
+    Array.from(files).forEach(function(file) {
+      if(/\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(file.name) || (file.type && file.type.indexOf('audio/') === 0)) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var base = file.name.replace(/\.[^.]+$/, '');
+          // 復元直後など、音源だけ無い同名の曲があればそこにひも付ける
+          var orphan = self.state.tracks.find(function(t) { return t.hasAudio === false && t.title === base; });
+          var track = orphan;
+          if(!track) {
+            track = {id: self.genId(), title: base, album: 'Others', lyrics: '', syncData: null, interludes: [], hasAudio: true};
+            self.state.tracks.push(track);
+          }
+          track.hasAudio = true;
+
+          var store = self.db.transaction('tracks', 'readwrite').objectStore('tracks');
+          var getReq = store.get(track.id);
+          getReq.onsuccess = function() {
+            var rec = getReq.result || {id: track.id};
+            rec.audio = new Blob([e.target.result], {type: file.type});
+            rec.title = track.title;
+            rec.album = track.album;
+            rec.lyrics = track.lyrics;
+            rec.syncData = track.syncData;
+            rec.interludes = track.interludes || [];
+            if(self.state.covers[track.id]) rec.cover = self.state.covers[track.id];
+            store.put(rec).onsuccess = function() {
+              self.render();
+              self.showToast(orphan ? '音源をひも付けました: ' + track.title : '追加しました: ' + track.title);
+            };
+          };
+        };
+        reader.readAsArrayBuffer(file);
+      }
+    });
+  },
+
+  render: function() {
+    var self = this;
+    var sidebarHtml = '';
+    this.albums.forEach(function(album) {
+      var tracks = self.state.tracks.filter(function(t) { return t.album === album; });
+      sidebarHtml += '<div class="album-group"><div class="album-header" onclick="app.toggleAlbum(\'' + album + '\')">';
+      sidebarHtml += '<span class="album-toggle open">▶</span>';
+      sidebarHtml += '<span class="album-title">' + album + '</span>';
+      sidebarHtml += '<span>(' + tracks.length + ')</span>';
+      sidebarHtml += '</div><div class="tracks-in-album open">';
+      tracks.forEach(function(track) {
+        sidebarHtml += '<div class="track-item' + (self.state.currentId === track.id ? ' active' : '') + '" onclick="app.selectTrack(\'' + track.id + '\')" ondblclick="app.playTrack(\'' + track.id + '\')">';
+        sidebarHtml += '<span class="track-name">' + (self.state.playingId === track.id ? '♪ ' : '') + track.title + '</span>';
+        sidebarHtml += '<span class="track-edit" onclick="event.stopPropagation(); app.editTrack(\'' + track.id + '\')">✎</span>';
+        sidebarHtml += '</div>';
+      });
+      sidebarHtml += '</div></div>';
+    });
+    document.getElementById('sidebarScroll').innerHTML = sidebarHtml;
+
+    var track = this.state.tracks.find(function(t) { return t.id === self.state.currentId; });
+    var stageHtml = '';
+    if(!track) {
+      stageHtml = '<div class="stage-empty"><h2>曲がありません</h2><p>左から選んでください</p></div>';
+    } else {
+      var lines = (track.lyrics || '').split('\n').filter(function(l) { return l.trim(); });
+      var cover = this.state.covers[track.id];
+      var isPlaying = this.state.playingId === track.id;
+
+      stageHtml = '<div class="now-panel">';
+      stageHtml += isPlaying
+        ? '<div class="panel-badge"><span class="dot"></span>NOW PLAYING</div>'
+        : '<div class="panel-badge idle"><span class="dot"></span>SELECTED</div>';
+      stageHtml += '<div class="panel-cover"' + (cover ? ' style="background-image:url(' + cover + ')"' : '') + '>' + (cover ? '' : '<span>♪</span>') + '</div>';
+      stageHtml += '<div class="panel-title">' + track.title + '</div>';
+      stageHtml += '<div class="panel-album">' + (track.album || '') + '</div>';
+      if(!isPlaying) {
+        stageHtml += '<button class="btn btn-accent panel-play" id="panelPlayBtn">▶ この曲を再生</button>';
+      }
+      stageHtml += '<div class="panel-meta">歌詞 ' + lines.length + '行';
+      if(track.syncData && track.syncData.length) {
+        stageHtml += '<br>同期済み ' + track.syncData.length + ' / ' + lines.length + '行';
+        if(track.interludes && track.interludes.length) stageHtml += '<br>間奏 ' + track.interludes.length + '箇所';
+      } else {
+        stageHtml += '<br>同期なし';
+      }
+      if(track.hasAudio === false) stageHtml += '<br><span style="color:var(--accent)">音源なし — mp3を追加してください</span>';
+      stageHtml += '</div><div class="panel-tools">';
+      if(track.syncData && track.syncData.length) {
+        stageHtml += '<button class="btn" id="shiftFwdBtn" title="赤字が曲より1行遅れている時に押す">1行 進める</button>';
+        stageHtml += '<button class="btn" id="shiftBackBtn" title="赤字が曲より1行進んでいる時に押す">1行 戻す</button>';
+        stageHtml += '<button class="btn" id="nudgeBackBtn" title="歌詞を0.2秒早める">−0.2s</button>';
+        stageHtml += '<button class="btn" id="nudgeFwdBtn" title="歌詞を0.2秒遅らせる">+0.2s</button>';
+      }
+      if(lines.length > 0) stageHtml += '<button class="btn" id="copyLyricsBtn">コピー</button>';
+      stageHtml += '<button class="btn" id="exportOneBtn" title="この曲のLRCとJSONを書き出す">この曲を書き出し</button>';
+      stageHtml += '</div></div>';
+
+      if(lines.length > 0) {
+        stageHtml += '<div class="lyrics-stage"><div class="lyrics-viewport"><div class="lyrics-track" id="lyricsTrack">';
+        lines.forEach(function(line) {
+          stageHtml += '<div class="lyrics-line">' + line + '</div>';
+        });
+        stageHtml += '</div></div><div class="lyrics-fade top"></div><div class="lyrics-fade bottom"></div>';
+        stageHtml += '<div class="interlude-badge" id="interludeBadge">♪ 間奏 ♪</div></div>';
+      } else {
+        stageHtml += '<div class="lyrics-stage"><div class="lyrics-none">No lyrics</div></div>';
+      }
+      document.getElementById('syncBtn').style.display = lines.length > 0 ? 'inline-flex' : 'none';
+    }
+    document.getElementById('stage').innerHTML = stageHtml;
+
+    var playBtnEl = document.getElementById('panelPlayBtn');
+    if(playBtnEl) playBtnEl.addEventListener('click', function() { self.playTrack(track.id); });
+    var exOne = document.getElementById('exportOneBtn');
+    if(exOne) exOne.addEventListener('click', function() { self.exportData(); });
+
+    if(track && track.syncData && track.syncData.length) {
+      var nudge = function(delta) {
+        track.syncData = track.syncData.map(function(t) { return Math.max(0, t + delta); });
+        if(track.interludes) track.interludes = track.interludes.map(function(t) { return Math.max(0, t + delta); });
+        self.saveData();
+        self.updateLyricsHighlight();
+        self.showToast((delta < 0 ? '早めました ' : '遅らせました ') + delta.toFixed(1) + '秒');
+      };
+      document.getElementById('nudgeBackBtn').addEventListener('click', function() { nudge(-0.2); });
+      document.getElementById('nudgeFwdBtn').addEventListener('click', function() { nudge(0.2); });
+
+      // 行が丸ごと1個ズレている時の補正。取り直さずに直せる
+      var shift = function(dir) {
+        var sd = track.syncData;
+        if(!sd || sd.length < 2) return;
+        if(dir > 0) {
+          // 表示が遅れている: 先頭に1個足して全体を後ろにずらす
+          var g = sd[1] - sd[0];
+          track.syncData = [Math.max(0, sd[0] - g)].concat(sd.slice(0, sd.length - 1));
+        } else {
+          // 表示が進んでいる: 先頭を捨てて全体を前に詰める
+          var g2 = sd[sd.length - 1] - sd[sd.length - 2];
+          track.syncData = sd.slice(1).concat([sd[sd.length - 1] + g2]);
+        }
+        self.saveData();
+        self.updateLyricsHighlight();
+        self.showToast(dir > 0 ? '1行 進めました' : '1行 戻しました');
+      };
+      document.getElementById('shiftFwdBtn').addEventListener('click', function() { shift(1); });
+      document.getElementById('shiftBackBtn').addEventListener('click', function() { shift(-1); });
+    }
+
+    if(track && lines.length > 0) {
+      document.getElementById('copyLyricsBtn').addEventListener('click', function() {
+        var allLyrics = (track.lyrics || '').trim();
+        navigator.clipboard.writeText(allLyrics).then(function() {
+          self.showToast('歌詞をコピーしました');
+        }).catch(function() {
+          alert('コピーに失敗しました');
+        });
+      });
+    }
+  },
+
+  updateLyricsHighlight: function() {
+    var self = this;
+    var track = this.state.tracks.find(function(t) { return t.id === self.state.currentId; });
+    if(!track) return;
+    var lyricsTrack = document.getElementById('lyricsTrack');
+    if(!lyricsTrack) return;
+    var lineEls = lyricsTrack.querySelectorAll('.lyrics-line');
+    if(!lineEls.length) return;
+
+    // lineEls[i] と syncData[i] は 1対1 (ダミー行なし)
+    var currentTime = document.getElementById('player').currentTime;
+    var sync = track.syncData;
+    var currentIndex = -1;
+    if(sync && sync.length) {
+      var last = Math.min(sync.length, lineEls.length) - 1;
+      for(var i = last; i >= 0; i--) {
+        if(currentTime >= sync[i]) { currentIndex = i; break; }
+      }
+    }
+
+    // 間奏中か判定: 今の行が始まった後に間奏マークを通過していたら間奏
+    var inInterlude = false;
+    if(currentIndex >= 0 && track.interludes && track.interludes.length) {
+      for(var k = 0; k < track.interludes.length; k++) {
+        var it = track.interludes[k];
+        if(it >= sync[currentIndex] && currentTime >= it) { inInterlude = true; break; }
+      }
+    }
+
+    // 別の曲を見ているだけの時は光らせない
+    if(this.state.playingId !== this.state.currentId) { currentIndex = -1; inInterlude = false; }
+
+    lineEls.forEach(function(el) { el.classList.remove('current', 'near', 'upcoming'); });
+
+    if(currentIndex >= 0 && !inInterlude) {
+      lineEls.forEach(function(el, idx) {
+        if(idx === currentIndex) el.classList.add('current');
+        else if(idx > currentIndex && idx <= currentIndex + 2) el.classList.add('near');
+      });
+    } else if(inInterlude) {
+      // 間奏中: 歌詞は消さない。直前の行は残し、次に来る行を白ではっきり出す
+      if(lineEls[currentIndex]) lineEls[currentIndex].classList.add('near');
+      if(lineEls[currentIndex + 1]) lineEls[currentIndex + 1].classList.add('upcoming');
+      if(lineEls[currentIndex + 2]) lineEls[currentIndex + 2].classList.add('near');
+    }
+
+    var badge = document.getElementById('interludeBadge');
+    if(badge) badge.style.display = inInterlude ? 'flex' : 'none';
+
+    // 間奏中は次の行、未再生時は1行目を中央に置く
+    var focusIdx = inInterlude ? Math.min(currentIndex + 1, lineEls.length - 1) : (currentIndex >= 0 ? currentIndex : 0);
+    var focusEl = lineEls[focusIdx];
+    if(focusEl) {
+      var viewH = lyricsTrack.parentElement.clientHeight;
+      var target = focusEl.offsetTop + focusEl.offsetHeight / 2 - viewH / 2;
+      lyricsTrack.style.transform = 'translateY(' + (-target) + 'px)';
+    }
+  },
+
+  editTrack: function(id) {
+    this.state.editingId = id;
+    var track = this.state.tracks.find(function(t) { return t.id === id; });
+    if(!track) return;
+    document.getElementById('f-title').value = track.title;
+    document.getElementById('f-album').value = track.album || '';
+    document.getElementById('f-lyrics').value = track.lyrics || '';
+    document.getElementById('f-cover').value = '';
+    document.getElementById('modalBackdrop').classList.add('open');
+  },
+
+  startSync: function() {
+    var self = this;
+    var track = this.state.tracks.find(function(t) { return t.id === self.state.currentId; });
+    if(!track) return;
+    // 別の曲が鳴っている時は、まずこの曲に切り替えてから同期する
+    if(this.state.playingId !== this.state.currentId) {
+      this.playTrack(this.state.currentId, function() { self.startSync(); });
+      return;
+    }
+    var lines = (track.lyrics || '').split('\n').filter(function(l) { return l.trim(); });
+    var base = (track.syncData || []).slice();   // 前回の記録。スキップ時の下敷きに使う
+    var s = {lines: lines, base: base, marks: [], interludes: (track.interludes || []).slice(), log: [], index: 0};
+
+    // 途中までしか終わっていなければ、その続きから再開する
+    if(base.length > 0 && base.length < lines.length) {
+      s.marks = base.slice();
+      s.index = base.length;
+      for(var i = 0; i < base.length; i++) s.log.push('line');
+    }
+
+    this.state.sync = s;
+    document.getElementById('syncOverlay').classList.add('open');
+    this.renderSyncLines();
+    this.seekSync(s.index > 0 ? s.marks[s.marks.length - 1] : 0);
+    this.updateSyncUI();
+    if(s.index > 0) this.showToast((s.index + 1) + '行目から再開します');
+    else if(base.length) this.showToast('スキップで直したい行まで進めます');
+  },
+
+  seekSync: function(t) {
+    var audio = document.getElementById('player');
+    audio.currentTime = Math.max(0, t || 0);
+    audio.play().catch(function(){});
+  },
+
+  renderSyncLines: function() {
+    if(!this.state.sync) return;
+    var html = '';
+    this.state.sync.lines.forEach(function(line) {
+      html += '<div class="lyrics-line">' + line + '</div>';
+    });
+    document.getElementById('syncTrack').innerHTML = html;
+  },
+
+  updateSyncUI: function() {
+    if(!this.state.sync) return;
+    var s = this.state.sync;
+    var done = s.index >= s.lines.length;
+    var track = document.getElementById('syncTrack');
+    var els = track.querySelectorAll('.lyrics-line');
+    els.forEach(function(el) { el.classList.remove('current', 'near', 'upcoming'); });
+
+    // 直前にタップした行 = 今まさに歌われている → 赤 (プレイヤーと同じ意味)
+    if(s.index > 0 && els[s.index - 1]) els[s.index - 1].classList.add('current');
+    // 次にタップする行 = まだ歌われていない → 白
+    if(!done && els[s.index]) els[s.index].classList.add('upcoming');
+    if(els[s.index + 1]) els[s.index + 1].classList.add('near');
+
+    // 主役は「今歌っている行」= 赤字。これを常に中央に置く
+    var focus = els[s.index > 0 ? s.index - 1 : 0];
+    if(focus) {
+      var target = focus.offsetTop + focus.offsetHeight / 2 - track.parentElement.clientHeight / 2;
+      track.style.transform = 'translateY(' + (-target) + 'px)';
+    }
+
+    document.getElementById('syncTapBtn').style.display = done ? 'none' : 'flex';
+    document.getElementById('syncHint').textContent = done ? '完了 — ✕ を押すと保存されます'
+      : (s.index === 0 ? '1行目が歌い出された瞬間にタップ' : '赤い行の次が歌い出された瞬間にタップ');
+    var prog = (done ? s.lines.length : s.index + 1) + ' / ' + s.lines.length;
+    if(s.interludes.length) prog += '　　♪ 間奏 ' + s.interludes.length + '箇所';
+    document.getElementById('syncProgress').textContent = prog;
+  },
+
+  // ===== Google Drive 同期 =====
+  drive: {
+    SCOPE: 'https://www.googleapis.com/auth/drive.file',
+    FOLDER_NAME: 'KNOX Player',
+    LIB_NAME: 'library.json',
+    token: null, expiresAt: 0, tokenClient: null, folderId: null, pending: null,
+
+    clientId: function() {
+      try { return (window.KNOX_CLIENT_ID || localStorage.getItem('knox_client_id') || '').trim(); }
+      catch(e) { return (window.KNOX_CLIENT_ID || '').trim(); }
+    },
+    setClientId: function(v) { try { localStorage.setItem('knox_client_id', v.trim()); } catch(e) {} },
+    isLocalFile: function() { return location.protocol === 'file:'; },
+    gisReady: function() { return typeof google !== 'undefined' && google.accounts && google.accounts.oauth2; },
+
+    auth: function(cb, err) {
+      var self = this;
+      if(this.token && Date.now() < this.expiresAt - 60000) { cb(this.token); return; }
+      if(this.isLocalFile()) { err('この機能はネット上に置いてから使えます（ローカルのファイルでは Google 認証ができません）'); return; }
+      if(!this.clientId()) { err('クライアントIDが未設定です'); return; }
+      if(!this.gisReady()) { err('Googleの認証スクリプトを読み込めませんでした'); return; }
+      if(!this.tokenClient) {
+        this.tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: this.clientId(), scope: this.SCOPE,
+          callback: function(resp) {
+            var p = self.pending; self.pending = null;
+            if(!p) return;
+            if(resp.error) { p.err('認証できませんでした: ' + resp.error); return; }
+            self.token = resp.access_token;
+            self.expiresAt = Date.now() + ((resp.expires_in || 3600) * 1000);
+            p.cb(self.token);
+          },
+          error_callback: function(e) {
+            var p = self.pending; self.pending = null;
+            if(p) p.err('認証が中断されました');
+          }
+        });
+      }
+      this.pending = {cb: cb, err: err};
+      this.tokenClient.requestAccessToken({prompt: this.token ? '' : 'consent'});
+    },
+
+    api: function(url, opts, cb, err) {
+      this.auth(function(tok) {
+        opts = opts || {};
+        opts.headers = opts.headers || {};
+        opts.headers['Authorization'] = 'Bearer ' + tok;
+        fetch(url, opts).then(function(r) {
+          if(!r.ok) return r.text().then(function(t) { throw new Error(r.status + ' ' + t.slice(0, 200)); });
+          return r.json();
+        }).then(cb).catch(function(e) { err(e.message); });
+      }, err);
+    },
+
+    ensureFolder: function(cb, err) {
+      var self = this;
+      if(this.folderId) { cb(this.folderId); return; }
+      var q = "mimeType='application/vnd.google-apps.folder' and name='" + this.FOLDER_NAME + "' and trashed=false";
+      this.api('https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q) + '&fields=files(id,name)', {}, function(res) {
+        if(res.files && res.files.length) { self.folderId = res.files[0].id; cb(self.folderId); return; }
+        self.api('https://www.googleapis.com/drive/v3/files?fields=id', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({name: self.FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder'})
+        }, function(f) { self.folderId = f.id; cb(f.id); }, err);
+      }, err);
+    },
+
+    findInFolder: function(name, cb, err) {
+      var self = this;
+      this.ensureFolder(function(fid) {
+        var q = "name='" + name + "' and '" + fid + "' in parents and trashed=false";
+        self.api('https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q) + '&fields=files(id,name)', {}, function(res) {
+          cb(res.files && res.files.length ? res.files[0].id : null);
+        }, err);
+      }, err);
+    },
+
+    // 小さいJSON用（multipart）
+    putJson: function(name, obj, cb, err) {
+      var self = this;
+      this.findInFolder(name, function(existingId) {
+        self.ensureFolder(function(fid) {
+          self.auth(function(tok) {
+            var meta = existingId ? {name: name} : {name: name, parents: [fid]};
+            var b = '-------knox\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'
+                  + JSON.stringify(meta)
+                  + '\r\n-------knox\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'
+                  + JSON.stringify(obj) + '\r\n-------knox--';
+            var url = 'https://www.googleapis.com/upload/drive/v3/files' + (existingId ? '/' + existingId : '') + '?uploadType=multipart&fields=id';
+            fetch(url, {
+              method: existingId ? 'PATCH' : 'POST',
+              headers: {'Authorization': 'Bearer ' + tok, 'Content-Type': 'multipart/related; boundary=-----knox'},
+              body: b
+            }).then(function(r) {
+              if(!r.ok) return r.text().then(function(t) { throw new Error(r.status + ' ' + t.slice(0, 200)); });
+              return r.json();
+            }).then(function(f) { cb(f.id); }).catch(function(e) { err(e.message); });
+          }, err);
+        }, err);
+      }, err);
+    },
+
+    // 音源用（resumable: 大きいファイルでも通る）
+    putBlob: function(name, blob, cb, err) {
+      var self = this;
+      this.findInFolder(name, function(existingId) {
+        self.ensureFolder(function(fid) {
+          self.auth(function(tok) {
+            var meta = existingId ? {name: name} : {name: name, parents: [fid]};
+            var url = 'https://www.googleapis.com/upload/drive/v3/files' + (existingId ? '/' + existingId : '') + '?uploadType=resumable&fields=id';
+            fetch(url, {
+              method: existingId ? 'PATCH' : 'POST',
+              headers: {'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json; charset=UTF-8',
+                        'X-Upload-Content-Type': blob.type || 'audio/mpeg'},
+              body: JSON.stringify(meta)
+            }).then(function(r) {
+              var loc = r.headers.get('Location');
+              if(!loc) throw new Error('アップロードを開始できませんでした');
+              return fetch(loc, {method: 'PUT', headers: {'Content-Type': blob.type || 'audio/mpeg'}, body: blob});
+            }).then(function(r) {
+              if(!r.ok) return r.text().then(function(t) { throw new Error(r.status + ' ' + t.slice(0, 200)); });
+              return r.json();
+            }).then(function(f) { cb(f.id); }).catch(function(e) { err(e.message); });
+          }, err);
+        }, err);
+      }, err);
+    },
+
+    getBlob: function(fileId, cb, err) {
+      this.auth(function(tok) {
+        fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media', {headers: {'Authorization': 'Bearer ' + tok}})
+          .then(function(r) { if(!r.ok) throw new Error('取得できませんでした (' + r.status + ')'); return r.blob(); })
+          .then(cb).catch(function(e) { err(e.message); });
+      }, err);
+    },
+
+    getJson: function(fileId, cb, err) {
+      this.auth(function(tok) {
+        fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media', {headers: {'Authorization': 'Bearer ' + tok}})
+          .then(function(r) { if(!r.ok) throw new Error('取得できませんでした (' + r.status + ')'); return r.json(); })
+          .then(cb).catch(function(e) { err(e.message); });
+      }, err);
+    }
+  },
+
+  driveLog: function(msg) {
+    var el = document.getElementById('driveLog');
+    if(el) el.textContent += (el.textContent ? '\n' : '') + msg;
+  },
+
+  openDrive: function() {
+    document.getElementById('driveLog').textContent = '';
+    document.getElementById('driveIdField').style.display = this.drive.clientId() ? 'none' : 'block';
+    document.getElementById('f-clientid').value = this.drive.clientId();
+    var st = [];
+    if(this.drive.isLocalFile()) st.push('⚠ いまローカルのファイルを開いています。Drive連携は knox-band.jp に置いてからお使いください。');
+    st.push(this.drive.clientId() ? 'クライアントID: 設定済み' : 'クライアントID: 未設定');
+    st.push('保存先: Google ドライブの「KNOX Player」フォルダ');
+    st.push('曲数: ' + this.state.tracks.length + '曲（音源あり ' + this.state.tracks.filter(function(t) { return t.hasAudio !== false; }).length + '曲）');
+    document.getElementById('driveStatus').innerHTML = st.join('<br>');
+    document.getElementById('driveBackdrop').classList.add('open');
+  },
+
+  // 端末 → Drive
+  driveUpload: function() {
+    var self = this;
+    var fail = function(m) { self.driveLog('エラー: ' + m); };
+    if(!this.state.tracks.length) { this.driveLog('曲がありません'); return; }
+    this.driveLog('Driveに接続しています…');
+
+    var queue = this.state.tracks.filter(function(t) { return t.hasAudio !== false && !t.driveAudioId; });
+    var i = 0;
+    var nextAudio = function() {
+      if(i >= queue.length) { uploadLibrary(); return; }
+      var track = queue[i++];
+      self.driveLog('音源を送信: ' + track.title + '  (' + i + '/' + queue.length + ')');
+      var req = self.db.transaction('tracks', 'readonly').objectStore('tracks').get(track.id);
+      req.onsuccess = function() {
+        var rec = req.result;
+        if(!rec || !rec.audio) { nextAudio(); return; }
+        self.drive.putBlob(track.id + '.mp3', rec.audio, function(fileId) {
+          track.driveAudioId = fileId;
+          nextAudio();
+        }, fail);
+      };
+    };
+    var uploadLibrary = function() {
+      var lib = {
+        app: 'KNOX PLAYER', version: 1, exportedAt: new Date().toISOString(),
+        tracks: self.state.tracks.map(function(t) {
+          return {id: t.id, title: t.title, album: t.album, lyrics: t.lyrics || '',
+                  syncData: t.syncData || [], interludes: t.interludes || [],
+                  driveAudioId: t.driveAudioId || null, cover: self.state.covers[t.id] || null};
+        })
+      };
+      self.driveLog('曲目リストを送信…');
+      self.drive.putJson(self.drive.LIB_NAME, lib, function() {
+        self.saveData();
+        self.driveLog('完了: ' + self.state.tracks.length + '曲をDriveに保存しました');
+        self.showToast('Driveに保存しました');
+      }, fail);
+    };
+    nextAudio();
+  },
+
+  // Drive → 端末（音源は再生時に落とす）
+  driveDownload: function() {
+    var self = this;
+    var fail = function(m) { self.driveLog('エラー: ' + m); };
+    this.driveLog('Driveを確認しています…');
+    this.drive.findInFolder(this.drive.LIB_NAME, function(fileId) {
+      if(!fileId) { self.driveLog('Driveにデータがありません。先に「Driveへ保存」をしてください'); return; }
+      self.drive.getJson(fileId, function(lib) {
+        if(!lib || !Array.isArray(lib.tracks)) { fail('データの形式が読めません'); return; }
+        self.driveLog(lib.tracks.length + '曲を取り込みます');
+        self.restoreLibrary(lib);
+        self.driveLog('完了。音源は再生ボタンを押したときに自動で取得します');
+      }, fail);
+    }, fail);
+  },
+
+  // 音源が端末に無ければ Drive から取ってきて保存する
+  fetchAudioFromDrive: function(track, cb, err) {
+    var self = this;
+    this.showToast('Driveから音源を取得しています…');
+    this.drive.getBlob(track.driveAudioId, function(blob) {
+      var store = self.db.transaction('tracks', 'readwrite').objectStore('tracks');
+      var g = store.get(track.id);
+      g.onsuccess = function() {
+        var rec = g.result || {id: track.id};
+        rec.audio = blob; rec.title = track.title; rec.album = track.album;
+        rec.lyrics = track.lyrics; rec.syncData = track.syncData;
+        rec.interludes = track.interludes || []; rec.driveAudioId = track.driveAudioId;
+        store.put(rec).onsuccess = function() { track.hasAudio = true; cb(blob); };
+      };
+    }, err);
+  },
+
+  // 全曲の歌詞・同期データを1ファイルに（音源は含まない）
+  exportLibrary: function() {
+    var self = this;
+    if(!this.state.tracks.length) { alert('曲がありません'); return; }
+    var data = {
+      app: 'KNOX PLAYER', version: 1, exportedAt: new Date().toISOString(),
+      tracks: this.state.tracks.map(function(t) {
+        return {
+          id: t.id, title: t.title, album: t.album,
+          lyrics: t.lyrics || '',
+          syncData: t.syncData || [],
+          interludes: t.interludes || [],
+          driveAudioId: t.driveAudioId || null,
+          cover: self.state.covers[t.id] || null
+        };
+      })
+    };
+    var stamp = new Date().toISOString().slice(0, 10);
+    this.downloadFile('KNOX-PLAYER-backup-' + stamp + '.json', JSON.stringify(data), 'application/json;charset=utf-8');
+    this.showToast(this.state.tracks.length + '曲を書き出しました（音源は含みません）');
+  },
+
+  restoreLibrary: function(data) {
+    var self = this;
+    if(!confirm('バックアップから ' + data.tracks.length + '曲を復元します。\n同じ曲がある場合は歌詞と同期データが上書きされます。よろしいですか？')) return;
+    var added = 0, updated = 0;
+    data.tracks.forEach(function(item) {
+      if(!item || !item.title) return;
+      var found = self.state.tracks.find(function(t) { return t.id === item.id; })
+               || self.state.tracks.find(function(t) { return t.title === item.title && (t.album || '') === (item.album || ''); });
+      var album = self.albums.indexOf(item.album) >= 0 ? item.album : 'Others';
+      if(found) {
+        if(typeof item.lyrics === 'string') found.lyrics = item.lyrics;
+        if(Array.isArray(item.syncData) && item.syncData.length) found.syncData = item.syncData;
+        found.interludes = Array.isArray(item.interludes) ? item.interludes : [];
+        if(item.driveAudioId) found.driveAudioId = item.driveAudioId;
+        if(item.cover) self.state.covers[found.id] = item.cover;
+        updated++;
+      } else {
+        var id = item.id || self.genId();
+        self.state.tracks.push({
+          id: id, title: item.title, album: album,
+          lyrics: item.lyrics || '',
+          syncData: (Array.isArray(item.syncData) && item.syncData.length) ? item.syncData : null,
+          interludes: Array.isArray(item.interludes) ? item.interludes : [],
+          hasAudio: false,
+          driveAudioId: item.driveAudioId || null
+        });
+        if(item.cover) self.state.covers[id] = item.cover;
+        added++;
+      }
+    });
+    this.saveData();
+    this.render();
+    this.updateLyricsHighlight();
+    this.showToast('復元しました（新規 ' + added + '曲 / 更新 ' + updated + '曲）');
+  },
+
+  // 1曲ぶんのJSON（この曲を書き出し で作ったもの）を選択中の曲に取り込む
+  importOneTrack: function(data) {
+    var self = this;
+    var track = this.state.tracks.find(function(t) { return t.id === self.state.currentId; });
+    if(!track) { alert('先に曲を選択してください'); return; }
+    if(!confirm('「' + (data.title || '?') + '」の歌詞と同期データを\n選択中の「' + track.title + '」に取り込みます。よろしいですか？')) return;
+    if(typeof data.lyrics === 'string') track.lyrics = data.lyrics;
+    if(Array.isArray(data.syncData) && data.syncData.length) track.syncData = data.syncData;
+    track.interludes = Array.isArray(data.interludes) ? data.interludes : [];
+    this.saveData();
+    this.render();
+    this.updateLyricsHighlight();
+    this.showToast('読み込みました');
+  },
+
+  exportData: function() {
+    var self = this;
+    var track = this.state.tracks.find(function(t) { return t.id === self.state.currentId; });
+    if(!track) { alert('曲を選択してください'); return; }
+
+    var lines = (track.lyrics || '').split('\n').filter(function(l) { return l.trim(); });
+    var lrc = '[ti:' + track.title + ']\n[al:' + (track.album || '') + ']\n\n';
+    if(track.syncData && track.syncData.length === lines.length) {
+      lines.forEach(function(line, idx) {
+        var time = track.syncData[idx];
+        var m = Math.floor(time / 60);
+        var s = Math.floor(time % 60);
+        var ms = Math.floor((time % 1) * 100);
+        lrc += '[' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s + '.' + (ms < 10 ? '0' : '') + ms + ']' + line + '\n';
+      });
+    } else {
+      lines.forEach(function(line) { lrc += line + '\n'; });
+    }
+    this.downloadFile(track.title + '.lrc', lrc, 'text/plain;charset=utf-8');
+
+    setTimeout(function() {
+      var json = {title: track.title, album: track.album, lyrics: track.lyrics, syncData: track.syncData || [], interludes: track.interludes || []};
+      app.downloadFile(track.title + '.json', JSON.stringify(json, null, 2), 'application/json;charset=utf-8');
+    }, 200);
+  },
+
+  downloadFile: function(filename, content, mime) {
+    var blob = new Blob([content], {type: mime});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+
+  toggleAlbum: function(album) {
+    this.render();
+  },
+
+  saveData: function() {
+    var self = this;
+    this.state.tracks.forEach(function(track) {
+      var tx = self.db.transaction('tracks', 'readwrite');
+      var store = tx.objectStore('tracks');
+      var req = store.get(track.id);
+
+      req.onsuccess = function() {
+        var data = req.result || {id: track.id, audio: null};
+        data.title = track.title;
+        data.album = track.album;
+        data.lyrics = track.lyrics;
+        data.syncData = track.syncData;
+        data.interludes = track.interludes || [];
+        data.driveAudioId = track.driveAudioId || null;
+
+        if(self.state.covers[track.id]) {
+          data.cover = self.state.covers[track.id];
+        }
+
+        store.put(data);
+      };
+    });
+  },
+
+  loadData: function(callback) {
+    var self = this;
+    var tx = this.db.transaction('tracks', 'readonly');
+    var store = tx.objectStore('tracks');
+    var req = store.getAll();
+
+    req.onsuccess = function() {
+      var data = req.result;
+      self.state.tracks = data.map(function(item) {
+        if(item.cover) self.state.covers[item.id] = item.cover;
+        return {
+          id: item.id,
+          title: item.title,
+          album: item.album,
+          lyrics: item.lyrics,
+          syncData: item.syncData,
+          interludes: item.interludes || [],
+          hasAudio: !!item.audio,
+          driveAudioId: item.driveAudioId || null
+        };
+      });
+      if(callback) callback();
+    };
+  },
+
+  showToast: function(message) {
+    var toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(function() {
+      toast.style.opacity = '0';
+      toast.style.transition = 'opacity .3s';
+      setTimeout(function() { document.body.removeChild(toast); }, 300);
+    }, 2000);
+  },
+
+  fmtTime: function(sec) {
+    if(!isFinite(sec) || sec < 0) sec = 0;
+    var m = Math.floor(sec / 60);
+    var s = Math.floor(sec % 60);
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  },
+
+  genId: function() {
+    return 't_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+};
+
+app.init();
+</script>
