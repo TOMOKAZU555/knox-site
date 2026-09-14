@@ -73,10 +73,10 @@
   .lyrics-stage{flex:1;position:relative;border-radius:12px;background:var(--surface);border:1px solid var(--border);overflow:hidden;}
   .lyrics-viewport{position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;overflow:hidden;}
   .lyrics-track{display:flex;flex-direction:column;align-items:center;transition:transform .35s cubic-bezier(.22,.9,.32,1);width:100%;padding:38vh 20px;will-change:transform;}
-  .lyrics-line{font-family:"Shippori Mincho",serif;font-size:18px;line-height:2.1;color:var(--text);opacity:.28;transition:opacity .35s;text-align:center;width:100%;cursor:text;user-select:text;}
+  .lyrics-line{font-family:"Shippori Mincho",serif;font-size:24px;line-height:1.95;color:var(--text);opacity:.28;transition:opacity .35s;text-align:center;width:100%;cursor:text;user-select:text;}
   .lyrics-line.near{opacity:.58;}
-  .lyrics-line.current{opacity:1;font-size:26px;font-weight:700;color:var(--accent);}
-  .lyrics-line.upcoming{opacity:1;font-size:26px;font-weight:700;color:var(--text);}
+  .lyrics-line.current{opacity:1;font-size:34px;font-weight:700;color:var(--accent);}
+  .lyrics-line.upcoming{opacity:1;font-size:34px;font-weight:700;color:var(--text);}
   .lyrics-fade{position:absolute;left:0;right:0;height:48px;pointer-events:none;z-index:10;}
   .lyrics-fade.top{top:0;background:linear-gradient(var(--surface),transparent);}
   .lyrics-fade.bottom{bottom:0;background:linear-gradient(transparent,var(--surface));}
@@ -124,7 +124,9 @@
   .sync-track{display:flex;flex-direction:column;align-items:center;width:100%;padding:115px 20px;transition:transform .3s cubic-bezier(.22,.9,.32,1);}
   #syncTrack .lyrics-line{opacity:1;color:var(--text);}
   #syncTrack .lyrics-line.near{opacity:1;}
-  #syncTrack .lyrics-line.upcoming{font-size:18px;font-weight:500;color:var(--text);}
+  #syncTrack .lyrics-line{font-size:20px;}
+  #syncTrack .lyrics-line.current{font-size:28px;}
+  #syncTrack .lyrics-line.upcoming{font-size:20px;font-weight:500;color:var(--text);}
   #syncTrack .lyrics-line.current::before{content:"▶";color:var(--accent);font-size:16px;margin-right:16px;vertical-align:middle;}
   .sync-tap{width:160px;height:160px;border-radius:50%;background:var(--accent);color:var(--accent-ink);border:none;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;}
   .sync-tap:active{transform:scale(.96);}
@@ -160,8 +162,8 @@
     .panel-play{padding:8px 12px;font-size:12px;}
     .panel-tools{display:none;}
     .lyrics-stage{flex:1;min-height:0;}
-    .lyrics-line{font-size:16px;line-height:2;}
-    .lyrics-line.current,.lyrics-line.upcoming{font-size:21px;}
+    .lyrics-line{font-size:19px;line-height:1.95;}
+    .lyrics-line.current,.lyrics-line.upcoming{font-size:27px;}
     .transport{padding:10px 12px;}
     .vol-row{display:none;}
     .play-btn{width:56px;height:56px;font-size:22px;}
@@ -367,6 +369,7 @@ var app = {
     playlists: [],
     activePlaylist: null,
     albumCovers: {},
+    collapsed: {},
     sync: null,
     editingId: null,
     covers: {}
@@ -395,6 +398,26 @@ var app = {
     if(!name) return this.OTHER;
     if(['Others', 'ARRANGEMENT', 'ORIGINALS', 'SINGLES'].indexOf(name) >= 0) return this.OTHER;
     return name;
+  },
+
+  // 「(after Bach)」や先頭の曲番号を無視して照合する
+  matchKey: function(name) {
+    return String(name || '')
+      .replace(/\.(mp3|wav|m4a|aac|flac|ogg|opus|aiff?|mp4|wma|alac)$/i, '')
+      .replace(/[（(]\s*after[^）)]*[）)]/ig, '')
+      .replace(/\s*[-–—]\s*after\s[^-–—]*$/i, '')
+      .replace(/^\s*(?:\d{2,}[\s._)\-\]]+|\d{1,2}[._)\-\]]+\s*)/, '')
+      .replace(/[\s_]+/g, ' ')
+      .trim().toLowerCase();
+  },
+
+  findTrackByName: function(name, onlyWithoutAudio) {
+    var key = this.matchKey(name);
+    if(!key) return null;
+    return this.state.tracks.find(function(t) {
+      if(onlyWithoutAudio && t.hasAudio !== false) return false;
+      return app.matchKey(t.title) === key;
+    }) || null;
   },
 
   coverOf: function(track) {
@@ -989,7 +1012,7 @@ var app = {
         var base = file.name.replace(/\.[^.]+$/, '');
         var blob = new Blob([e.target.result], {type: file.type || 'audio/mpeg'});
         // 1) 曲名がぴたり一致する「音源なし」の曲があればそこへ
-        var orphan = self.state.tracks.find(function(t) { return t.hasAudio === false && t.title === base; });
+        var orphan = self.findTrackByName(base, true);
         if(orphan) { self.attachAudio(orphan, blob, '音源をひも付けました: ' + orphan.title, next); return; }
         // 2) 一致しないが音源待ちの曲があるなら、どれに入れるか選んでもらう
         var waiting = self.state.tracks.filter(function(t) { return t.hasAudio === false; });
@@ -1047,7 +1070,7 @@ var app = {
           reader.onload = function(e) {
             var base = file.name.replace(/\.[^.]+$/, '');
             var blob = new Blob([e.target.result], {type: file.type || 'audio/mpeg'});
-            var exist = self.state.tracks.find(function(t) { return t.title === base; });
+            var exist = self.findTrackByName(base, false);
             var track;
             if(exist) { track = exist; track.album = album; }
             else {
@@ -1153,10 +1176,11 @@ var app = {
       var tracks = self.state.tracks.filter(function(t) { return (t.album || self.OTHER) === album; });
       sidebarHtml += '<div class="album-group"><div class="album-header" onclick="app.toggleAlbum(\'' + album + '\')"'
         + ' ondragover="app.onDropOver(event,this)" ondragleave="app.onDropLeave(this)" ondrop="app.dropOnAlbum(event,' + JSON.stringify(album).replace(/"/g, '&quot;') + ')">';
-      sidebarHtml += '<span class="album-toggle open">▶</span>';
+      var open = !self.state.collapsed[album];
+      sidebarHtml += '<span class="album-toggle' + (open ? ' open' : '') + '">▶</span>';
       sidebarHtml += '<span class="album-title">' + album + '</span>';
       sidebarHtml += '<span>(' + tracks.length + ')</span>';
-      sidebarHtml += '</div><div class="tracks-in-album open">';
+      sidebarHtml += '</div><div class="tracks-in-album' + (open ? ' open' : '') + '">';
       tracks.forEach(function(track) {
         sidebarHtml += '<div class="track-item' + (self.state.currentId === track.id ? ' active' : '') + '" draggable="true"'
           + ' ondragstart="app.onTrackDragStart(event,\'' + track.id + '\')" ondragend="app.onTrackDragEnd()"'
@@ -1747,7 +1771,7 @@ var app = {
       var attach = function(files, album) {
         files.forEach(function(f) {
           var base = f.name.replace(/\.[^.]+$/, '');
-          var track = self.state.tracks.find(function(t) { return t.title === base; });
+          var track = self.findTrackByName(base, false);
           if(track) {
             track.driveAudioId = f.id;
             if(album) track.album = album;
@@ -1931,6 +1955,7 @@ var app = {
   },
 
   toggleAlbum: function(album) {
+    this.state.collapsed[album] = !this.state.collapsed[album];
     this.render();
   },
 
