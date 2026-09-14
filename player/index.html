@@ -36,6 +36,9 @@
   .pl-add{cursor:pointer;padding:0 6px;font-size:15px;color:var(--text-dim);}
   .pl-add:hover{color:var(--accent);}
   .pl-empty{font-size:11px;color:var(--text-dim);padding:4px 10px;}
+  .drop-target{outline:2px dashed var(--accent);outline-offset:-2px;background:rgba(220,20,60,.12);border-radius:6px;}
+  body.dragging-track .album-header{background:rgba(255,255,255,.03);border-radius:6px;}
+  body.dragging-track .track-item{cursor:grabbing;}
   .pl-note{font-size:11px;color:var(--accent);background:rgba(220,20,60,.08);border:1px solid var(--accent);border-radius:6px;padding:8px 10px;margin:0 2px 12px;line-height:1.7;}
   .track-item:hover .track-edit{opacity:1;}
   .main-content{flex:1;display:flex;flex-direction:column;overflow:hidden;}
@@ -245,7 +248,8 @@
       </div>
       <div class="field">
         <label for="f-album">アルバム</label>
-        <input type="text" id="f-album">
+        <input type="text" id="f-album" list="albumOptions" placeholder="アルバム名（自由に入力できます）">
+        <datalist id="albumOptions"></datalist>
       </div>
       <div class="field">
         <label for="f-cover">ジャケット</label>
@@ -471,7 +475,8 @@ var app = {
     document.addEventListener('drop', function(e) {
       e.preventDefault();
       document.getElementById('dropOverlay').classList.remove('active');
-      self.handleFiles(e.dataTransfer.files);
+      if(self.dragTrackId) return;              // 曲の移動中はファイル処理しない
+      if(e.dataTransfer.files && e.dataTransfer.files.length) self.handleFiles(e.dataTransfer.files);
     });
 
     document.getElementById('playBtn').addEventListener('click', function() {
@@ -791,6 +796,61 @@ var app = {
     return q[n];
   },
 
+  dragTrackId: null,
+
+  onTrackDragStart: function(ev, id) {
+    this.dragTrackId = id;
+    try { ev.dataTransfer.setData('text/plain', id); ev.dataTransfer.effectAllowed = 'move'; } catch(e) {}
+    document.body.classList.add('dragging-track');
+  },
+
+  onTrackDragEnd: function() {
+    this.dragTrackId = null;
+    document.body.classList.remove('dragging-track');
+    var els = document.querySelectorAll('.drop-target');
+    for(var i = 0; i < els.length; i++) els[i].classList.remove('drop-target');
+  },
+
+  onDropOver: function(ev, el) {
+    if(!this.dragTrackId) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    if(el) el.classList.add('drop-target');
+  },
+
+  onDropLeave: function(el) { if(el) el.classList.remove('drop-target'); },
+
+  // アルバム見出しに落とす → そのアルバムへ移動
+  dropOnAlbum: function(ev, album) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    var id = this.dragTrackId;
+    this.onTrackDragEnd();
+    if(!id) return;
+    var track = this.state.tracks.find(function(t) { return t.id === id; });
+    if(!track || track.album === album) return;
+    track.album = album;
+    this.saveData();
+    this.render();
+    this.showToast('「' + track.title + '」を ' + album + ' に移しました');
+  },
+
+  // プレイリストに落とす → そこへ追加
+  dropOnPlaylist: function(ev, plId) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    var id = this.dragTrackId;
+    this.onTrackDragEnd();
+    if(!id) return;
+    var pl = this.state.playlists.find(function(p) { return p.id === plId; });
+    var track = this.state.tracks.find(function(t) { return t.id === id; });
+    if(!pl || !track) return;
+    if(pl.trackIds.indexOf(id) < 0) pl.trackIds.push(id);
+    this.savePlaylists();
+    this.render();
+    this.showToast('「' + track.title + '」を ' + pl.name + ' に追加しました');
+  },
+
   togglePlaylist: function(id) {
     this.state.activePlaylist = (this.state.activePlaylist === id) ? null : id;
     this.render();
@@ -1078,7 +1138,8 @@ var app = {
       sidebarHtml += '<div class="pl-empty">＋ で作成できます</div>';
     }
     this.state.playlists.forEach(function(pl) {
-      sidebarHtml += '<div class="track-item' + (self.state.activePlaylist === pl.id ? ' active' : '') + '" onclick="app.togglePlaylist(\'' + pl.id + '\')">';
+      sidebarHtml += '<div class="track-item' + (self.state.activePlaylist === pl.id ? ' active' : '') + '" onclick="app.togglePlaylist(\'' + pl.id + '\')"'
+        + ' ondragover="app.onDropOver(event,this)" ondragleave="app.onDropLeave(this)" ondrop="app.dropOnPlaylist(event,\'' + pl.id + '\')">';
       sidebarHtml += '<span class="track-name">' + pl.name + ' (' + pl.trackIds.length + ')</span>';
       sidebarHtml += '<span class="track-edit" onclick="event.stopPropagation(); app.deletePlaylist(\'' + pl.id + '\')">✕</span>';
       sidebarHtml += '</div>';
@@ -1090,13 +1151,16 @@ var app = {
 
     this.albumList().forEach(function(album) {
       var tracks = self.state.tracks.filter(function(t) { return (t.album || self.OTHER) === album; });
-      sidebarHtml += '<div class="album-group"><div class="album-header" onclick="app.toggleAlbum(\'' + album + '\')">';
+      sidebarHtml += '<div class="album-group"><div class="album-header" onclick="app.toggleAlbum(\'' + album + '\')"'
+        + ' ondragover="app.onDropOver(event,this)" ondragleave="app.onDropLeave(this)" ondrop="app.dropOnAlbum(event,' + JSON.stringify(album).replace(/"/g, '&quot;') + ')">';
       sidebarHtml += '<span class="album-toggle open">▶</span>';
       sidebarHtml += '<span class="album-title">' + album + '</span>';
       sidebarHtml += '<span>(' + tracks.length + ')</span>';
       sidebarHtml += '</div><div class="tracks-in-album open">';
       tracks.forEach(function(track) {
-        sidebarHtml += '<div class="track-item' + (self.state.currentId === track.id ? ' active' : '') + '" onclick="app.selectTrack(\'' + track.id + '\')" ondblclick="app.playTrack(\'' + track.id + '\')">';
+        sidebarHtml += '<div class="track-item' + (self.state.currentId === track.id ? ' active' : '') + '" draggable="true"'
+          + ' ondragstart="app.onTrackDragStart(event,\'' + track.id + '\')" ondragend="app.onTrackDragEnd()"'
+          + ' onclick="app.selectTrack(\'' + track.id + '\')" ondblclick="app.playTrack(\'' + track.id + '\')">';
         sidebarHtml += '<span class="track-name">' + (self.state.playingId === track.id ? '♪ ' : '') + track.title + '</span>';
         if(active) {
           var inPl = active.trackIds.indexOf(track.id) >= 0;
@@ -1277,6 +1341,8 @@ var app = {
     if(!track) return;
     document.getElementById('f-title').value = track.title;
     document.getElementById('f-album').value = track.album || '';
+    document.getElementById('albumOptions').innerHTML =
+      this.albumList().map(function(a) { return '<option value="' + a + '">'; }).join('');
     document.getElementById('f-lyrics').value = track.lyrics || '';
     document.getElementById('f-cover').value = '';
     document.getElementById('modalBackdrop').classList.add('open');
@@ -1783,9 +1849,11 @@ var app = {
                || self.state.tracks.find(function(t) { return t.title === item.title && (t.album || '') === (item.album || ''); });
       var album = self.normalizeAlbum(item.album);
       if(found) {
-        if(typeof item.lyrics === 'string') found.lyrics = item.lyrics;
+        // 中身のあるものだけ上書きする。空で既存の歌詞や同期を消さない
+        if(typeof item.lyrics === 'string' && item.lyrics.trim()) found.lyrics = item.lyrics;
         if(Array.isArray(item.syncData) && item.syncData.length) found.syncData = item.syncData;
-        found.interludes = Array.isArray(item.interludes) ? item.interludes : [];
+        if(Array.isArray(item.interludes) && item.interludes.length) found.interludes = item.interludes;
+        if(item.album) found.album = self.normalizeAlbum(item.album);
         if(item.driveAudioId) found.driveAudioId = item.driveAudioId;
         if(item.cover) self.state.covers[found.id] = item.cover;
         updated++;
