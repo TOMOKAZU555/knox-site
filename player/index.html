@@ -32,7 +32,11 @@
   .track-item:hover{background:var(--surface-2);color:var(--text);}
   .track-item.active{background:var(--accent);color:var(--accent-ink);font-weight:600;}
   .track-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;}
-  .track-edit{cursor:pointer;opacity:0;transition:opacity .12s;padding:2px 4px;}
+  .track-edit{cursor:pointer;opacity:0;transition:opacity .12s;padding:2px 6px;}
+  .pl-add{cursor:pointer;padding:0 6px;font-size:15px;color:var(--text-dim);}
+  .pl-add:hover{color:var(--accent);}
+  .pl-empty{font-size:11px;color:var(--text-dim);padding:4px 10px;}
+  .pl-note{font-size:11px;color:var(--accent);background:rgba(220,20,60,.08);border:1px solid var(--accent);border-radius:6px;padding:8px 10px;margin:0 2px 12px;line-height:1.7;}
   .track-item:hover .track-edit{opacity:1;}
   .main-content{flex:1;display:flex;flex-direction:column;overflow:hidden;}
   .stage{flex:1;display:flex;flex-direction:row;gap:18px;padding:20px;min-height:0;overflow:hidden;}
@@ -157,6 +161,10 @@
     .lyrics-line.current,.lyrics-line.upcoming{font-size:21px;}
     .transport{padding:10px 12px;}
     .vol-row{display:none;}
+    .play-btn{width:56px;height:56px;font-size:22px;}
+    .skip-btn{width:44px;height:44px;font-size:15px;}
+    .transport-btns{gap:10px;width:100%;justify-content:center;}
+    .controls-row{justify-content:center;}
     .sync-foot{flex-wrap:wrap;}
     .sync-stage{height:190px;}
     .sync-track{padding:95px 16px;}
@@ -206,6 +214,8 @@
             <button class="skip-btn" id="prevBtn">⏮</button>
             <button class="play-btn" id="playBtn">▶</button>
             <button class="skip-btn" id="nextBtn">⏭</button>
+            <button class="skip-btn" id="stopBtn" title="停止（先頭に戻る）">⏹</button>
+            <button class="skip-btn" id="shuffleBtn" title="ランダム再生">🔀</button>
             <button class="skip-btn" id="loopBtn">🔁</button>
           </div>
           <div class="vol-row">
@@ -253,6 +263,20 @@
         <button type="submit" class="btn btn-accent">保存</button>
       </div>
     </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="plBackdrop">
+  <div class="modal">
+    <h2>新しいプレイリスト</h2>
+    <div class="field">
+      <label for="f-plname">名前</label>
+      <input type="text" id="f-plname" placeholder="ライブ用、お気に入り など">
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="plCancelBtn">キャンセル</button>
+      <button type="button" class="btn btn-accent" id="plCreateBtn">作成</button>
+    </div>
   </div>
 </div>
 
@@ -333,6 +357,9 @@ var app = {
     playingId: null,
     audioUrl: null,
     loopMode: 0,
+    shuffle: false,
+    playlists: [],
+    activePlaylist: null,
     sync: null,
     editingId: null,
     covers: {}
@@ -409,13 +436,45 @@ var app = {
     });
 
     document.getElementById('prevBtn').addEventListener('click', function() {
-      var idx = self.state.tracks.findIndex(function(t) { return t.id === self.state.playingId; });
-      if(idx > 0) self.playTrack(self.state.tracks[idx - 1].id);
+      var audio = document.getElementById('player');
+      // 3秒以上流れていたら、まず頭出し
+      if(self.state.playingId && audio.currentTime > 3) { audio.currentTime = 0; return; }
+      var t = self.neighborTrack(-1);
+      if(t) self.playTrack(t.id);
     });
 
     document.getElementById('nextBtn').addEventListener('click', function() {
-      var idx = self.state.tracks.findIndex(function(t) { return t.id === self.state.playingId; });
-      if(idx >= 0 && idx < self.state.tracks.length - 1) self.playTrack(self.state.tracks[idx + 1].id);
+      var t = self.neighborTrack(1);
+      if(t) self.playTrack(t.id);
+    });
+
+    document.getElementById('stopBtn').addEventListener('click', function() {
+      var audio = document.getElementById('player');
+      audio.pause();
+      audio.currentTime = 0;
+      self.updateLyricsHighlight();
+    });
+
+    document.getElementById('shuffleBtn').addEventListener('click', function() {
+      self.state.shuffle = !self.state.shuffle;
+      this.style.color = self.state.shuffle ? 'var(--accent)' : 'var(--text)';
+      this.style.borderColor = self.state.shuffle ? 'var(--accent)' : 'var(--border)';
+      self.showToast(self.state.shuffle ? 'ランダム再生: オン' : 'ランダム再生: オフ');
+    });
+
+    document.getElementById('plCancelBtn').addEventListener('click', function() {
+      document.getElementById('plBackdrop').classList.remove('open');
+    });
+    document.getElementById('plCreateBtn').addEventListener('click', function() {
+      var name = document.getElementById('f-plname').value.trim();
+      if(!name) { alert('名前を入れてください'); return; }
+      var id = 'pl_' + Date.now().toString(36);
+      self.state.playlists.push({id: id, name: name, trackIds: []});
+      self.state.activePlaylist = id;
+      self.savePlaylists();
+      document.getElementById('plBackdrop').classList.remove('open');
+      self.render();
+      self.showToast('「' + name + '」を作りました。曲の右の＋で追加できます');
     });
 
     document.getElementById('loopBtn').addEventListener('click', function() {
@@ -447,16 +506,14 @@ var app = {
     });
 
     audio.addEventListener('ended', function() {
-      var idx = self.state.tracks.findIndex(function(t) { return t.id === self.state.playingId; });
       if(self.state.loopMode === 2) {
         audio.currentTime = 0;
         audio.play().catch(function(){});
-      } else if(self.state.loopMode === 1) {
-        if(idx >= 0 && idx < self.state.tracks.length - 1) {
-          self.playTrack(self.state.tracks[idx + 1].id);
-        } else if(idx === self.state.tracks.length - 1) {
-          self.playTrack(self.state.tracks[0].id);
-        }
+        return;
+      }
+      if(self.state.loopMode === 1 || self.state.shuffle) {
+        var t = self.neighborTrack(1);
+        if(t) self.playTrack(t.id);
       }
     });
 
@@ -658,6 +715,75 @@ var app = {
     document.getElementById('player').volume = 0.7;
   },
 
+  // いま再生の対象になっている曲の並び
+  playQueue: function() {
+    var self = this;
+    if(!this.state.activePlaylist) return this.state.tracks.slice();
+    var pl = this.state.playlists.find(function(p) { return p.id === self.state.activePlaylist; });
+    if(!pl) return this.state.tracks.slice();
+    return pl.trackIds.map(function(id) {
+      return self.state.tracks.find(function(t) { return t.id === id; });
+    }).filter(Boolean);
+  },
+
+  // 次に再生する曲。シャッフル中はランダムに選ぶ
+  neighborTrack: function(dir) {
+    var q = this.playQueue();
+    if(!q.length) return null;
+    if(this.state.shuffle) {
+      if(q.length === 1) return q[0];
+      var cur = this.state.playingId, pick;
+      do { pick = q[Math.floor(Math.random() * q.length)]; } while(pick.id === cur);
+      return pick;
+    }
+    var self = this;
+    var idx = q.findIndex(function(t) { return t.id === self.state.playingId; });
+    if(idx < 0) return q[0];
+    var n = idx + dir;
+    if(n < 0) n = q.length - 1;
+    if(n >= q.length) n = 0;
+    return q[n];
+  },
+
+  togglePlaylist: function(id) {
+    this.state.activePlaylist = (this.state.activePlaylist === id) ? null : id;
+    this.render();
+  },
+
+  newPlaylist: function() {
+    document.getElementById('f-plname').value = '';
+    document.getElementById('plBackdrop').classList.add('open');
+    setTimeout(function() { document.getElementById('f-plname').focus(); }, 50);
+  },
+
+  deletePlaylist: function(id) {
+    var self = this;
+    var pl = this.state.playlists.find(function(p) { return p.id === id; });
+    if(!pl) return;
+    if(!confirm('プレイリスト「' + pl.name + '」を削除しますか？（曲自体は消えません）')) return;
+    this.state.playlists = this.state.playlists.filter(function(p) { return p.id !== id; });
+    if(this.state.activePlaylist === id) this.state.activePlaylist = null;
+    this.savePlaylists();
+    this.render();
+  },
+
+  // プレイリストへの出し入れ
+  toggleInPlaylist: function(trackId) {
+    var self = this;
+    var pl = this.state.playlists.find(function(p) { return p.id === self.state.activePlaylist; });
+    if(!pl) return;
+    var i = pl.trackIds.indexOf(trackId);
+    if(i >= 0) pl.trackIds.splice(i, 1); else pl.trackIds.push(trackId);
+    this.savePlaylists();
+    this.render();
+  },
+
+  savePlaylists: function() {
+    if(!this.db) return;
+    var store = this.db.transaction('tracks', 'readwrite').objectStore('tracks');
+    store.put({id: '__playlists__', playlists: this.state.playlists});
+  },
+
   toggleMenu: function(open) {
     document.getElementById('sidebar').classList.toggle('open', open);
     document.getElementById('scrim').classList.toggle('open', open);
@@ -831,7 +957,28 @@ var app = {
 
   render: function() {
     var self = this;
-    var sidebarHtml = '';
+    var active = this.state.activePlaylist
+      ? this.state.playlists.find(function(p) { return p.id === self.state.activePlaylist; })
+      : null;
+
+    var sidebarHtml = '<div class="album-group"><div class="album-header" style="cursor:default;">';
+    sidebarHtml += '<span class="album-title">プレイリスト</span>';
+    sidebarHtml += '<span class="pl-add" onclick="app.newPlaylist()" title="新しいプレイリスト">＋</span>';
+    sidebarHtml += '</div><div class="tracks-in-album open">';
+    if(!this.state.playlists.length) {
+      sidebarHtml += '<div class="pl-empty">＋ で作成できます</div>';
+    }
+    this.state.playlists.forEach(function(pl) {
+      sidebarHtml += '<div class="track-item' + (self.state.activePlaylist === pl.id ? ' active' : '') + '" onclick="app.togglePlaylist(\'' + pl.id + '\')">';
+      sidebarHtml += '<span class="track-name">' + pl.name + ' (' + pl.trackIds.length + ')</span>';
+      sidebarHtml += '<span class="track-edit" onclick="event.stopPropagation(); app.deletePlaylist(\'' + pl.id + '\')">✕</span>';
+      sidebarHtml += '</div>';
+    });
+    sidebarHtml += '</div></div>';
+    if(active) {
+      sidebarHtml += '<div class="pl-note">「' + active.name + '」を編集中<br>曲の右の ＋ で追加、✓ で外せます<br>再生と曲送りはこの中だけになります</div>';
+    }
+
     this.albums.forEach(function(album) {
       var tracks = self.state.tracks.filter(function(t) { return t.album === album; });
       sidebarHtml += '<div class="album-group"><div class="album-header" onclick="app.toggleAlbum(\'' + album + '\')">';
@@ -842,7 +989,12 @@ var app = {
       tracks.forEach(function(track) {
         sidebarHtml += '<div class="track-item' + (self.state.currentId === track.id ? ' active' : '') + '" onclick="app.selectTrack(\'' + track.id + '\')" ondblclick="app.playTrack(\'' + track.id + '\')">';
         sidebarHtml += '<span class="track-name">' + (self.state.playingId === track.id ? '♪ ' : '') + track.title + '</span>';
-        sidebarHtml += '<span class="track-edit" onclick="event.stopPropagation(); app.editTrack(\'' + track.id + '\')">✎</span>';
+        if(active) {
+          var inPl = active.trackIds.indexOf(track.id) >= 0;
+          sidebarHtml += '<span class="track-edit" style="opacity:1;color:' + (inPl ? 'var(--accent-ink)' : 'var(--text-dim)') + ';" onclick="event.stopPropagation(); app.toggleInPlaylist(\'' + track.id + '\')">' + (inPl ? '✓' : '＋') + '</span>';
+        } else {
+          sidebarHtml += '<span class="track-edit" onclick="event.stopPropagation(); app.editTrack(\'' + track.id + '\')">✎</span>';
+        }
         sidebarHtml += '</div>';
       });
       sidebarHtml += '</div></div>';
@@ -1568,6 +1720,7 @@ var app = {
 
   saveData: function() {
     var self = this;
+    this.savePlaylists();
     this.state.tracks.forEach(function(track) {
       var tx = self.db.transaction('tracks', 'readwrite');
       var store = tx.objectStore('tracks');
@@ -1599,6 +1752,9 @@ var app = {
 
     req.onsuccess = function() {
       var data = req.result;
+      var meta = data.find(function(it) { return it.id === '__playlists__'; });
+      self.state.playlists = (meta && Array.isArray(meta.playlists)) ? meta.playlists : [];
+      data = data.filter(function(it) { return it.id !== '__playlists__'; });
       self.state.tracks = data.map(function(item) {
         if(item.cover) self.state.covers[item.id] = item.cover;
         return {
