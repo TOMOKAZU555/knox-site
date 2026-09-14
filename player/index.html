@@ -100,6 +100,7 @@
   .vol-row input{width:80px;}
   .dropzone-hint{width:100%;border:1.5px dashed var(--border);border-radius:8px;padding:10px 8px;text-align:center;color:var(--text-dim);font-size:11.5px;cursor:pointer;background:transparent;font-family:inherit;}
   .dropzone-hint:hover{border-color:var(--accent);color:var(--accent);}
+  .ver-label{text-align:center;font-size:10px;color:var(--text-dim);opacity:.6;padding-top:6px;letter-spacing:.05em;}
   .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:100;}
   .modal-backdrop.open{display:flex;}
   .modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:90%;max-width:520px;max-height:80vh;overflow-y:auto;padding:20px;}
@@ -198,6 +199,8 @@
       <div class="sidebar-footer">
         <button type="button" class="dropzone-hint" id="dropzoneHint">ファイルを選ぶ</button>
         <button type="button" class="dropzone-hint" id="folderHint" style="margin-top:6px;">フォルダごと取り込む<br><span style="font-size:10px;">フォルダ名がアルバムになります</span></button>
+        <div style="margin-top:6px;text-align:center;color:var(--text-dim);font-size:10px;line-height:1.5;">歌詞ファイル（LRC/SRT/ASS/TXT）も<br>そのまま入れられます。LRCなら同期も不要</div>
+        <div class="ver-label" id="verLabel"></div>
       </div>
     </div>
 
@@ -358,6 +361,7 @@
 window.KNOX_CLIENT_ID = '196756138644-m0633ld7rlmfla8c7j7ddv02l6qb59s9.apps.googleusercontent.com';
 
 var app = {
+  VERSION: 'v39',
   db: null,
   state: {
     tracks: [],
@@ -409,6 +413,109 @@ var app = {
       .replace(/^\s*(?:\d{2,}[\s._)\-\]]+|\d{1,2}[._)\-\]]+\s*)/, '')
       .replace(/[\s_]+/g, ' ')
       .trim().toLowerCase();
+  },
+
+  isLyricFile: function(name) { return /\.(lrc|srt|ass|ssa|vtt|txt)$/i.test(name); },
+
+  // メモ帳で作った歌詞ファイル(Shift_JIS / BOM付き)でも文字化けしないように読む
+  decodeText: function(buffer) {
+    var bytes = new Uint8Array(buffer);
+    var txt = null;
+    try { txt = new TextDecoder('utf-8', {fatal: true}).decode(bytes); }
+    catch(e) {
+      var tryEnc = ['shift_jis', 'euc-jp', 'utf-16le'];
+      for(var i = 0; i < tryEnc.length && txt === null; i++) {
+        try { txt = new TextDecoder(tryEnc[i], {fatal: true}).decode(bytes); } catch(e2) {}
+      }
+      if(txt === null) txt = new TextDecoder('utf-8').decode(bytes);
+    }
+    return txt.replace(/^﻿/, '');
+  },
+
+  readLyricBlob: function(blob, cb) {
+    var self = this;
+    var r = new FileReader();
+    r.onload = function(e) { cb(self.decodeText(e.target.result)); };
+    r.onerror = function() { cb(null); };
+    r.readAsArrayBuffer(blob);
+  },
+
+  // 歌詞ファイルを読む。時間情報があれば同期データも作る
+  parseLyricFile: function(name, text) {
+    var lines = String(text).replace(/\r/g, '').split('\n');
+    var out = [], times = [];
+    var toSec = function(h, m, sec, frac, fracLen) {
+      return (+h||0)*3600 + (+m||0)*60 + (+sec||0) + (frac ? (+frac)/Math.pow(10, fracLen) : 0);
+    };
+    var ext = (name.match(/\.([a-z0-9]+)$/i) || [,''])[1].toLowerCase();
+
+    if(ext === 'lrc') {
+      lines.forEach(function(l) {
+        var m = l.match(/^\s*\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?\]\s*(.*)$/);
+        if(!m) return;
+        var body = m[4].trim();
+        if(!body) return;
+        times.push(toSec(0, m[1], m[2], m[3], (m[3]||'').length));
+        out.push(body);
+      });
+    } else if(ext === 'srt' || ext === 'vtt') {
+      for(var i = 0; i < lines.length; i++) {
+        var m2 = lines[i].match(/(\d{1,2}):(\d{2}):(\d{2})[.,](\d{1,3})\s*-->/);
+        if(!m2) continue;
+        var t = toSec(m2[1], m2[2], m2[3], m2[4], m2[4].length);
+        var body2 = [];
+        for(var j = i + 1; j < lines.length && lines[j].trim(); j++) {
+          body2.push(lines[j].replace(/<[^>]*>/g, '').trim());
+        }
+        if(body2.length) { times.push(t); out.push(body2.join(' ')); }
+        i = j;
+      }
+    } else if(ext === 'ass' || ext === 'ssa') {
+      lines.forEach(function(l) {
+        var m3 = l.match(/^Dialogue:\s*[^,]*,\s*(\d{1,2}):(\d{2}):(\d{2})[.:](\d{1,2})\s*,/);
+        if(!m3) return;
+        var body3 = l.split(',').slice(9).join(',')
+          .replace(/\{[^}]*\}/g, '').replace(/\\[Nnh]/g, ' ').trim();
+        if(!body3) return;
+        times.push(toSec(m3[1], m3[2], m3[3], m3[4], m3[4].length));
+        out.push(body3);
+      });
+    } else {
+      lines.forEach(function(l) { if(l.trim()) out.push(l.trim()); });
+    }
+
+    if(!out.length) return null;
+    // 時間順に整える
+    if(times.length === out.length) {
+      var pair = out.map(function(v, i) { return [times[i], v]; });
+      pair.sort(function(a, b) { return a[0] - b[0]; });
+      out = pair.map(function(x) { return x[1]; });
+      times = pair.map(function(x) { return x[0]; });
+    } else { times = []; }
+    return {lyrics: out.join('\n'), syncData: times};
+  },
+
+  lyricBase: function(fileName) {
+    return String(fileName || '').replace(/\.(lrc|srt|ass|ssa|vtt|txt)$/i, '')
+      .replace(/[\s_]*[（(\[]?\s*(歌詞|lyrics?|sync|同期)\s*[）)\]]?\s*$/i, '');
+  },
+
+  // 歌詞ファイル1つを、曲名が合う曲へ入れる。戻り値は入れられたかどうか
+  applyLyricFile: function(fileName, text, done) {
+    var base = this.lyricBase(fileName);
+    var track = this.findTrackByName(base, false);
+    if(!track) { this.showToast('曲が見つかりません: ' + fileName); if(done) done(false); return false; }
+    var parsed = this.parseLyricFile(fileName, text);
+    if(!parsed) { this.showToast('歌詞を読めませんでした: ' + fileName); if(done) done(false); return false; }
+    var count = parsed.lyrics.split('\n').length;
+    track.lyrics = parsed.lyrics;
+    if(parsed.syncData.length) track.syncData = parsed.syncData;
+    this.saveData();
+    this.render();
+    this.showToast(track.title + ' に歌詞' + count + '行を入れました'
+      + (parsed.syncData.length ? '（タイミング付き・同期不要）' : ''));
+    if(done) done(true);
+    return true;
   },
 
   findTrackByName: function(name, onlyWithoutAudio) {
@@ -786,6 +893,7 @@ var app = {
       self.showToast('同期データを消しました');
     });
 
+    document.getElementById('verLabel').textContent = 'KNOX PLAYER ' + this.VERSION;
     document.getElementById('player').volume = 0.7;
   },
 
@@ -991,8 +1099,17 @@ var app = {
     var self = this;
     var all = Array.from(files);
     // 明らかに音源でないものだけ除く。それ以外は形式を問わず受け付ける
+    var self0 = this;
+    var lyricFiles = all.filter(function(f) { return self0.isLyricFile(f.name); });
+    all = all.filter(function(f) { return lyricFiles.indexOf(f) < 0; });
+    lyricFiles.forEach(function(f) {
+      self0.readLyricBlob(f, function(text) {
+        if(text === null) { self0.showToast('読めませんでした: ' + f.name); return; }
+        self0.applyLyricFile(f.name, text);
+      });
+    });
     var skipped = all.filter(function(f) {
-      return /\.(json|txt|lrc|md|html|htm|css|js|csv|zip|pdf|docx?|xlsx?)$/i.test(f.name)
+      return /\.(json|md|html|htm|css|js|csv|zip|pdf|docx?|xlsx?)$/i.test(f.name)
           || (f.type && (f.type.indexOf('image/') === 0));
     });
     var list = all.filter(function(f) { return skipped.indexOf(f) < 0; });
@@ -1000,6 +1117,7 @@ var app = {
       this.showToast('音源として読めないファイルを除きました: ' + skipped.map(function(f){return f.name;}).join('、'));
     }
     if(!list.length) {
+      if(lyricFiles.length) return;
       if(all.length) alert('音源ファイルが見つかりませんでした。\n選んだファイル: ' + all.map(function(f){return f.name;}).join('、'));
       return;
     }
@@ -1644,6 +1762,7 @@ var app = {
     document.getElementById('saveClientIdBtn').style.display = this.drive.isEmbedded() ? 'none' : 'inline-flex';
     var st = [];
     if(this.drive.isLocalFile()) st.push('⚠ いまローカルのファイルを開いています。Drive連携は knox-band.jp に置いてからお使いください。');
+    st.push('バージョン: ' + this.VERSION);
     st.push('クライアントID: ' + (this.drive.isEmbedded() ? '埋め込み済み（入力不要）' : (this.drive.clientId() ? 'この端末で設定済み' : '未設定')));
     st.push('保存先: Google ドライブの「KNOX Player」フォルダ');
     st.push('サインイン: ' + (this.drive.token && Date.now() < this.drive.expiresAt ? '済み' : 'まだ'));
@@ -1760,7 +1879,9 @@ var app = {
     var fail = function(m) { self.driveLog('エラー: ' + m); };
     var FOLDER = 'application/vnd.google-apps.folder';
     var isImage = function(f) { return /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name) || (f.mimeType || '').indexOf('image/') === 0; };
-    var isJunk = function(f) { return /\.(json|txt|lrc|md|html?|css|js|csv|zip|pdf|docx?|xlsx?|ini)$/i.test(f.name); };
+    var isLyric = function(f) { return self.isLyricFile(f.name); };
+    var isJunk = function(f) { return /\.(json|md|html?|css|js|csv|zip|pdf|docx?|xlsx?|ini)$/i.test(f.name) || isLyric(f); };
+    var lyricQueue = [];
 
     this.driveLog('Driveの「' + this.drive.AUDIO_FOLDER + '」を見ています…');
     this.drive.listAudioFolder(function(entries) {
@@ -1785,15 +1906,17 @@ var app = {
       };
 
       attach(loose, null);
+      entries.filter(isLyric).forEach(function(f) { lyricQueue.push(f); });
 
       var fi = 0;
       var nextFolder = function() {
-        if(fi >= folders.length) { finish(); return; }
+        if(fi >= folders.length) { pullLyrics(); return; }
         var folder = folders[fi++];
         self.driveLog('アルバム「' + folder.name + '」を読み込み中…');
         albums.push(folder.name);
         self.drive.listById(folder.id, function(items) {
           attach(items.filter(function(f) { return f.mimeType !== FOLDER && !isImage(f) && !isJunk(f); }), folder.name);
+          items.filter(isLyric).forEach(function(f) { lyricQueue.push(f); });
           var art = items.find(isImage);
           if(art && !self.state.albumCovers[folder.name]) {
             self.drive.getBlob(art.id, function(blob) {
@@ -1805,16 +1928,48 @@ var app = {
         }, fail);
       };
 
+      // 歌詞ファイル（LRC / SRT / ASS / VTT / TXT）も拾って、曲名が合う曲へ入れる
+      var lyricsIn = 0, lyricsTimed = 0, lyricsMiss = [];
+      var li = 0;
+      var pullLyrics = function() {
+        if(li >= lyricQueue.length) { finish(); return; }
+        var f = lyricQueue[li++];
+        if(!self.findTrackByName(self.lyricBase(f.name), false)) { lyricsMiss.push(f.name); pullLyrics(); return; }
+        if(li === 1) self.driveLog('歌詞ファイルを読み込み中…');
+        self.drive.getBlob(f.id, function(blob) {
+          self.readLyricBlob(blob, function(text) {
+            var track = text === null ? null : self.findTrackByName(self.lyricBase(f.name), false);
+            var parsed = track ? self.parseLyricFile(f.name, text) : null;
+            if(track && parsed) {
+              track.lyrics = parsed.lyrics;
+              if(parsed.syncData.length) { track.syncData = parsed.syncData; lyricsTimed++; }
+              lyricsIn++;
+            } else { lyricsMiss.push(f.name); }
+            pullLyrics();
+          });
+        }, function() { lyricsMiss.push(f.name); pullLyrics(); });
+      };
+
+      var reportLyrics = function() {
+        if(lyricsIn) {
+          self.driveLog('歌詞を入れました: ' + lyricsIn + '曲'
+            + (lyricsTimed ? '（うち' + lyricsTimed + '曲はタイミング付き＝同期の手作業なし）' : ''));
+        }
+        if(lyricsMiss.length) self.driveLog('曲名が合わず入れられなかった歌詞: ' + lyricsMiss.join('、'));
+      };
+
       var finish = function() {
-        if(!linked && !added) {
+        if(!linked && !added && !lyricsIn) {
           self.driveLog('「' + self.drive.AUDIO_FOLDER + '」には音源が見つかりませんでした');
-          self.driveLog('完了。アルバム名のフォルダを作って、その中に音源とジャケット画像を入れておけば、次から自動で取り込みます');
+          reportLyrics();
+          self.driveLog('完了。アルバム名のフォルダを作って、その中に音源・ジャケット画像・歌詞ファイル（LRC/SRT/ASS/TXT）を入れておけば、次から自動で取り込みます');
           self.render();
           return;
         }
         self.saveData();
         self.render();
-        self.driveLog('音源をひも付けました: ' + linked + '曲' + (added ? ' / 新規 ' + added + '曲' : ''));
+        if(linked || added) self.driveLog('音源をひも付けました: ' + linked + '曲' + (added ? ' / 新規 ' + added + '曲' : ''));
+        reportLyrics();
         if(albums.length) self.driveLog('アルバム: ' + albums.join('、'));
         self.driveLog('完了。曲をタップすれば、その場で音源が降りてきます');
         self.showToast('Driveから読み込みました');
@@ -1869,8 +2024,9 @@ var app = {
     var added = 0, updated = 0;
     data.tracks.forEach(function(item) {
       if(!item || !item.title) return;
+      // 曲名の (after 〜) や曲番号の違いを無視して照合する。二重登録を防ぐ
       var found = self.state.tracks.find(function(t) { return t.id === item.id; })
-               || self.state.tracks.find(function(t) { return t.title === item.title && (t.album || '') === (item.album || ''); });
+               || self.findTrackByName(item.title, false);
       var album = self.normalizeAlbum(item.album);
       if(found) {
         // 中身のあるものだけ上書きする。空で既存の歌詞や同期を消さない
@@ -1878,6 +2034,7 @@ var app = {
         if(Array.isArray(item.syncData) && item.syncData.length) found.syncData = item.syncData;
         if(Array.isArray(item.interludes) && item.interludes.length) found.interludes = item.interludes;
         if(item.album) found.album = self.normalizeAlbum(item.album);
+        if(item.title && item.title.length > (found.title || '').length) found.title = item.title;
         if(item.driveAudioId) found.driveAudioId = item.driveAudioId;
         if(item.cover) self.state.covers[found.id] = item.cover;
         updated++;
