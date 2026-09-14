@@ -1,3 +1,5 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>KNOX PLAYER</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -47,7 +49,11 @@
   .panel-meta{font-size:11.5px;color:var(--text-dim);line-height:1.85;border-top:1px solid var(--border);padding-top:10px;}
   .panel-tools{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:10px;}
   .panel-tools .btn{font-size:11px;padding:5px 9px;}
-  @media(max-width:900px){.stage{flex-direction:column;overflow-y:auto;}.now-panel{width:auto;flex-direction:row;align-items:center;gap:14px;}.panel-cover{width:90px;flex:0 0 auto;}.panel-tools{margin-top:0;border:0;padding-top:0;}}
+  .panel-info{display:flex;flex-direction:column;gap:11px;flex:1;min-width:0;}
+  .menu-btn{display:none;padding:7px 11px;font-size:15px;line-height:1;}
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:55;display:none;}
+  .scrim.open{display:block;}
+
   .stage-empty{margin:auto;text-align:center;color:var(--text-dim);}
   .stage-empty h2{font-family:"Cinzel",serif;font-size:18px;color:var(--text);margin:0 0 8px;}
   .now-playing{display:flex;gap:16px;background:var(--surface);border-radius:12px;padding:16px;border:1px solid var(--border);position:relative;}
@@ -123,11 +129,47 @@
   .drop-overlay-inner strong{display:block;font-family:"Cinzel",serif;font-size:24px;color:var(--accent);margin-bottom:6px;}
   .toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border);padding:12px 16px;border-radius:8px;font-size:12px;color:var(--text);z-index:1000;animation:slideIn .3s;}
   @keyframes slideIn{from{transform:translateX(400px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+  @media(max-width:760px){
+    .menu-btn{display:inline-flex;}
+    .topbar{padding:10px 12px;gap:8px;}
+    .brand-mark{font-size:16px;}
+    .topbar-btns{gap:6px;}
+    .topbar-btns .btn{padding:7px 9px;font-size:11.5px;}
+    .sidebar{position:fixed;top:0;bottom:0;left:0;width:78%;max-width:300px;z-index:60;
+             transform:translateX(-100%);transition:transform .25s ease;box-shadow:0 0 40px rgba(0,0,0,.6);}
+    .sidebar.open{transform:translateX(0);}
+    .track-item{padding:11px 10px;font-size:14px;}
+    .track-edit{opacity:1;padding:4px 8px;}
+    .album-header{padding:10px;font-size:13px;}
+    .stage{flex-direction:column;padding:12px;gap:12px;overflow:hidden;}
+    .now-panel{width:auto;flex:0 0 auto;flex-direction:row;align-items:center;gap:12px;padding:12px;}
+    .panel-cover{width:64px;height:64px;flex:0 0 auto;aspect-ratio:auto;border-radius:8px;}
+    .panel-cover span{font-size:26px;}
+    .panel-info{gap:4px;}
+    .panel-title{font-size:16px;}
+    .panel-album{margin-top:0;font-size:11px;}
+    .panel-badge{font-size:9.5px;}
+    .panel-meta{border:0;padding-top:2px;font-size:10.5px;line-height:1.5;}
+    .panel-play{padding:8px 12px;font-size:12px;}
+    .panel-tools{display:none;}
+    .lyrics-stage{flex:1;min-height:0;}
+    .lyrics-line{font-size:16px;line-height:2;}
+    .lyrics-line.current,.lyrics-line.upcoming{font-size:21px;}
+    .transport{padding:10px 12px;}
+    .vol-row{display:none;}
+    .sync-foot{flex-wrap:wrap;}
+    .sync-stage{height:190px;}
+    .sync-track{padding:95px 16px;}
+    .modal{padding:16px;}
+  }
 </style>
 
 <div class="app">
   <div class="topbar">
-    <span class="brand-mark">KNOX</span>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="btn menu-btn" id="menuBtn" aria-label="曲リスト">☰</button>
+      <span class="brand-mark">KNOX</span>
+    </div>
     <div class="topbar-btns">
       <button class="btn" id="driveBtn">Drive</button>
       <button class="btn" id="backupBtn" title="全曲の歌詞と同期データを1ファイルに書き出す">バックアップ</button>
@@ -136,8 +178,9 @@
     </div>
   </div>
 
+  <div class="scrim" id="scrim"></div>
   <div class="main-layout">
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
       <div class="sidebar-scroll" id="sidebarScroll"></div>
       <div class="sidebar-footer">
         <button type="button" class="dropzone-hint" id="dropzoneHint">ドラッグ<br>または選択</button>
@@ -213,6 +256,23 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="pickBackdrop">
+  <div class="modal">
+    <h2>この音源をどの曲に入れますか？</h2>
+    <div class="field">
+      <label>追加したファイル</label>
+      <div id="pickFileName" style="font-size:13px;color:var(--text);"></div>
+    </div>
+    <div class="field">
+      <label>音源がまだ入っていない曲</label>
+      <div id="pickList" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;"></div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="pickNewBtn">新しい曲として追加</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="driveBackdrop">
   <div class="modal">
     <h2>Google Drive 同期</h2>
@@ -220,7 +280,7 @@
       <label>状態</label>
       <div id="driveStatus" style="font-size:12.5px;color:var(--text-dim);line-height:1.8;"></div>
     </div>
-    <div class="field" id="driveIdField" style="display:none;">
+    <div class="field" id="driveIdField">
       <label for="f-clientid">Google クライアントID</label>
       <input type="text" id="f-clientid" placeholder="xxxxxxxx.apps.googleusercontent.com">
       <div class="field-buttons"><button type="button" class="btn" id="saveClientIdBtn">保存</button></div>
@@ -262,6 +322,9 @@
 </div>
 
 <script>
+// Google クライアントID（公開情報。端末ごとの入力を不要にするため埋め込み）
+window.KNOX_CLIENT_ID = '196756138644-m0633ld7rlmfla8c7j7ddv02l6qb59s9.apps.googleusercontent.com';
+
 var app = {
   db: null,
   state: {
@@ -400,6 +463,9 @@ var app = {
     document.getElementById('seekBar').addEventListener('change', function() {
       audio.currentTime = (this.value / 100) * audio.duration;
     });
+
+    document.getElementById('menuBtn').addEventListener('click', function() { self.toggleMenu(true); });
+    document.getElementById('scrim').addEventListener('click', function() { self.toggleMenu(false); });
 
     document.getElementById('driveBtn').addEventListener('click', function() { self.openDrive(); });
     document.getElementById('driveCloseBtn').addEventListener('click', function() {
@@ -592,11 +658,37 @@ var app = {
     document.getElementById('player').volume = 0.7;
   },
 
+  toggleMenu: function(open) {
+    document.getElementById('sidebar').classList.toggle('open', open);
+    document.getElementById('scrim').classList.toggle('open', open);
+  },
+
+  // スマホのロック画面から操作できるようにする
+  setupMediaSession: function(track) {
+    if(!('mediaSession' in navigator)) return;
+    var audio = document.getElementById('player');
+    var art = this.state.covers[track.id];
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: track.title, artist: 'KNOX', album: track.album || '',
+        artwork: art ? [{src: art, sizes: '512x512', type: 'image/png'}] : []
+      });
+    } catch(e) {}
+    var set = function(action, fn) { try { navigator.mediaSession.setActionHandler(action, fn); } catch(e) {} };
+    set('play', function() { audio.play().catch(function(){}); });
+    set('pause', function() { audio.pause(); });
+    set('previoustrack', function() { document.getElementById('prevBtn').click(); });
+    set('nexttrack', function() { document.getElementById('nextBtn').click(); });
+    set('seekbackward', function() { audio.currentTime = Math.max(0, audio.currentTime - 10); });
+    set('seekforward', function() { audio.currentTime = audio.currentTime + 10; });
+  },
+
   // 左のリストで選ぶだけ。再生中の曲は止めない
   selectTrack: function(id) {
     var self = this;
     if(!this.state.tracks.some(function(t) { return t.id === id; })) return;
     this.state.currentId = id;
+    this.toggleMenu(false);
     this.render();
     setTimeout(function() { self.updateLyricsHighlight(); }, 50);
   },
@@ -620,6 +712,8 @@ var app = {
       self.render();
       setTimeout(function() { self.updateLyricsHighlight(); }, 50);
       audio.play().catch(function(){});
+      self.setupMediaSession(track);
+      self.toggleMenu(false);
       if(callback) callback();
     };
 
@@ -637,41 +731,90 @@ var app = {
 
   handleFiles: function(files) {
     var self = this;
-    Array.from(files).forEach(function(file) {
-      if(/\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(file.name) || (file.type && file.type.indexOf('audio/') === 0)) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          var base = file.name.replace(/\.[^.]+$/, '');
-          // 復元直後など、音源だけ無い同名の曲があればそこにひも付ける
-          var orphan = self.state.tracks.find(function(t) { return t.hasAudio === false && t.title === base; });
-          var track = orphan;
-          if(!track) {
-            track = {id: self.genId(), title: base, album: 'Others', lyrics: '', syncData: null, interludes: [], hasAudio: true};
-            self.state.tracks.push(track);
-          }
-          track.hasAudio = true;
-
-          var store = self.db.transaction('tracks', 'readwrite').objectStore('tracks');
-          var getReq = store.get(track.id);
-          getReq.onsuccess = function() {
-            var rec = getReq.result || {id: track.id};
-            rec.audio = new Blob([e.target.result], {type: file.type});
-            rec.title = track.title;
-            rec.album = track.album;
-            rec.lyrics = track.lyrics;
-            rec.syncData = track.syncData;
-            rec.interludes = track.interludes || [];
-            if(self.state.covers[track.id]) rec.cover = self.state.covers[track.id];
-            store.put(rec).onsuccess = function() {
-              self.render();
-              self.showToast(orphan ? '音源をひも付けました: ' + track.title : '追加しました: ' + track.title);
-            };
-          };
-        };
-        reader.readAsArrayBuffer(file);
-      }
+    var list = Array.from(files).filter(function(f) {
+      return /\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(f.name) || (f.type && f.type.indexOf('audio/') === 0);
     });
+    if(!list.length) return;
+    var i = 0;
+    var next = function() {
+      if(i >= list.length) return;
+      var file = list[i++];
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var base = file.name.replace(/\.[^.]+$/, '');
+        var blob = new Blob([e.target.result], {type: file.type || 'audio/mpeg'});
+        // 1) 曲名がぴたり一致する「音源なし」の曲があればそこへ
+        var orphan = self.state.tracks.find(function(t) { return t.hasAudio === false && t.title === base; });
+        if(orphan) { self.attachAudio(orphan, blob, '音源をひも付けました: ' + orphan.title, next); return; }
+        // 2) 一致しないが音源待ちの曲があるなら、どれに入れるか選んでもらう
+        var waiting = self.state.tracks.filter(function(t) { return t.hasAudio === false; });
+        if(waiting.length) {
+          self.askTrackForAudio(file.name, waiting, function(track) {
+            if(track) self.attachAudio(track, blob, '音源をひも付けました: ' + track.title, next);
+            else self.attachAudio(self.newTrack(base), blob, '追加しました: ' + base, next);
+          });
+          return;
+        }
+        // 3) 待っている曲が無ければ新しい曲として追加
+        self.attachAudio(self.newTrack(base), blob, '追加しました: ' + base, next);
+      };
+      reader.readAsArrayBuffer(file);
+    };
+    next();
   },
+
+  newTrack: function(title) {
+    var track = {id: this.genId(), title: title, album: 'Others', lyrics: '',
+                 syncData: null, interludes: [], hasAudio: true, driveAudioId: null};
+    this.state.tracks.push(track);
+    return track;
+  },
+
+  attachAudio: function(track, blob, message, done) {
+    var self = this;
+    track.hasAudio = true;
+    track.driveAudioId = null;   // 差し替えたらDrive側も上げ直す
+    var store = this.db.transaction('tracks', 'readwrite').objectStore('tracks');
+    var getReq = store.get(track.id);
+    getReq.onsuccess = function() {
+      var rec = getReq.result || {id: track.id};
+      rec.audio = blob;
+      rec.title = track.title; rec.album = track.album; rec.lyrics = track.lyrics;
+      rec.syncData = track.syncData; rec.interludes = track.interludes || [];
+      rec.driveAudioId = null;
+      if(self.state.covers[track.id]) rec.cover = self.state.covers[track.id];
+      store.put(rec).onsuccess = function() {
+        self.render();
+        self.showToast(message);
+        if(done) done();
+      };
+    };
+  },
+
+  askTrackForAudio: function(fileName, candidates, cb) {
+    var self = this;
+    document.getElementById('pickFileName').textContent = fileName;
+    var list = document.getElementById('pickList');
+    list.innerHTML = '';
+    candidates.forEach(function(track) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn';
+      b.style.justifyContent = 'flex-start';
+      b.textContent = track.title + '（歌詞 ' + ((track.lyrics || '').split('\n').filter(function(l){return l.trim();}).length) + '行）';
+      b.addEventListener('click', function() { close(); cb(track); });
+      list.appendChild(b);
+    });
+    var newBtn = document.getElementById('pickNewBtn');
+    var onNew = function() { close(); cb(null); };
+    var close = function() {
+      document.getElementById('pickBackdrop').classList.remove('open');
+      newBtn.removeEventListener('click', onNew);
+    };
+    newBtn.addEventListener('click', onNew);
+    document.getElementById('pickBackdrop').classList.add('open');
+  },
+
 
   render: function() {
     var self = this;
@@ -703,10 +846,11 @@ var app = {
       var isPlaying = this.state.playingId === track.id;
 
       stageHtml = '<div class="now-panel">';
+      stageHtml += '<div class="panel-cover"' + (cover ? ' style="background-image:url(' + cover + ')"' : '') + '>' + (cover ? '' : '<span>♪</span>') + '</div>';
+      stageHtml += '<div class="panel-info">';
       stageHtml += isPlaying
         ? '<div class="panel-badge"><span class="dot"></span>NOW PLAYING</div>'
         : '<div class="panel-badge idle"><span class="dot"></span>SELECTED</div>';
-      stageHtml += '<div class="panel-cover"' + (cover ? ' style="background-image:url(' + cover + ')"' : '') + '>' + (cover ? '' : '<span>♪</span>') + '</div>';
       stageHtml += '<div class="panel-title">' + track.title + '</div>';
       stageHtml += '<div class="panel-album">' + (track.album || '') + '</div>';
       if(!isPlaying) {
@@ -729,7 +873,7 @@ var app = {
       }
       if(lines.length > 0) stageHtml += '<button class="btn" id="copyLyricsBtn">コピー</button>';
       stageHtml += '<button class="btn" id="exportOneBtn" title="この曲のLRCとJSONを書き出す">この曲を書き出し</button>';
-      stageHtml += '</div></div>';
+      stageHtml += '</div></div></div>';
 
       if(lines.length > 0) {
         stageHtml += '<div class="lyrics-stage"><div class="lyrics-viewport"><div class="lyrics-track" id="lyricsTrack">';
@@ -945,9 +1089,12 @@ var app = {
     token: null, expiresAt: 0, tokenClient: null, folderId: null, pending: null,
 
     clientId: function() {
-      try { return (window.KNOX_CLIENT_ID || localStorage.getItem('knox_client_id') || '').trim(); }
-      catch(e) { return (window.KNOX_CLIENT_ID || '').trim(); }
+      // 埋め込みを最優先。端末ごとに違うIDが残っていても必ず統一される
+      var embedded = (window.KNOX_CLIENT_ID || '').trim();
+      if(embedded) return embedded;
+      try { return (localStorage.getItem('knox_client_id') || '').trim(); } catch(e) { return ''; }
     },
+    isEmbedded: function() { return !!(window.KNOX_CLIENT_ID || '').trim(); },
     setClientId: function(v) { try { localStorage.setItem('knox_client_id', v.trim()); } catch(e) {} },
     isLocalFile: function() { return location.protocol === 'file:'; },
     gisReady: function() { return typeof google !== 'undefined' && google.accounts && google.accounts.oauth2; },
@@ -1087,16 +1234,28 @@ var app = {
     if(el) el.textContent += (el.textContent ? '\n' : '') + msg;
   },
 
+  openDriveStatus: function() {
+    var withAudio = this.state.tracks.filter(function(t) { return t.hasAudio !== false; }).length;
+    var el = document.getElementById('driveStatus');
+    if(el) el.innerHTML = 'サインイン: 済み<br>この端末の曲数: ' + this.state.tracks.length + '曲（うち音源あり ' + withAudio + '曲）';
+  },
+
   openDrive: function() {
     document.getElementById('driveLog').textContent = '';
-    document.getElementById('driveIdField').style.display = this.drive.clientId() ? 'none' : 'block';
-    document.getElementById('f-clientid').value = this.drive.clientId();
+    var idField = document.getElementById('f-clientid');
+    idField.value = this.drive.clientId();
+    idField.readOnly = this.drive.isEmbedded();
+    document.getElementById('saveClientIdBtn').style.display = this.drive.isEmbedded() ? 'none' : 'inline-flex';
     var st = [];
     if(this.drive.isLocalFile()) st.push('⚠ いまローカルのファイルを開いています。Drive連携は knox-band.jp に置いてからお使いください。');
-    st.push(this.drive.clientId() ? 'クライアントID: 設定済み' : 'クライアントID: 未設定');
+    st.push('クライアントID: ' + (this.drive.isEmbedded() ? '埋め込み済み（入力不要）' : (this.drive.clientId() ? 'この端末で設定済み' : '未設定')));
     st.push('保存先: Google ドライブの「KNOX Player」フォルダ');
     st.push('サインイン: ' + (this.drive.token && Date.now() < this.drive.expiresAt ? '済み' : 'まだ'));
-    st.push('曲数: ' + this.state.tracks.length + '曲（音源あり ' + this.state.tracks.filter(function(t) { return t.hasAudio !== false; }).length + '曲）');
+    var withAudio = this.state.tracks.filter(function(t) { return t.hasAudio !== false; }).length;
+    st.push('この端末の曲数: ' + this.state.tracks.length + '曲（うち音源あり ' + withAudio + '曲）');
+    if(this.state.tracks.length && withAudio < this.state.tracks.length) {
+      st.push('<span style="color:var(--accent)">⚠ 音源が無い曲が ' + (this.state.tracks.length - withAudio) + '曲あります。mp3をドラッグしてから保存してください</span>');
+    }
     document.getElementById('driveStatus').innerHTML = st.join('<br>');
     document.getElementById('driveBackdrop').classList.add('open');
   },
@@ -1123,7 +1282,13 @@ var app = {
     var self = this;
     var fail = function(m) { self.driveLog('エラー: ' + m); };
 
+    var missing = this.state.tracks.filter(function(t) { return t.hasAudio === false; });
+    if(missing.length) {
+      this.driveLog('※ 音源が入っていない曲が ' + missing.length + '曲あります（' + missing.slice(0,3).map(function(t){return t.title;}).join('、') + (missing.length>3?' ほか':'') + '）');
+      this.driveLog('※ これらは曲名と歌詞だけが保存されます。音源も上げるには、mp3をこの画面にドラッグしてから、もう一度「Driveへ保存」を押してください');
+    }
     var queue = this.state.tracks.filter(function(t) { return t.hasAudio !== false && !t.driveAudioId; });
+    var sent = 0;
     var i = 0;
     var nextAudio = function() {
       if(i >= queue.length) { uploadLibrary(); return; }
@@ -1135,6 +1300,7 @@ var app = {
         if(!rec || !rec.audio) { nextAudio(); return; }
         self.drive.putBlob(track.id + '.mp3', rec.audio, function(fileId) {
           track.driveAudioId = fileId;
+          sent++;
           nextAudio();
         }, fail);
       };
@@ -1149,10 +1315,18 @@ var app = {
         })
       };
       self.driveLog('曲目リストを送信…');
+      var withAudio = self.state.tracks.filter(function(t) { return !!t.driveAudioId; }).length;
       self.drive.putJson(self.drive.LIB_NAME, lib, function() {
         self.saveData();
-        self.driveLog('完了: ' + self.state.tracks.length + '曲をDriveに保存しました');
-        self.showToast('Driveに保存しました');
+        self.driveLog('完了: 曲目リスト ' + self.state.tracks.length + '曲 / 今回送った音源 ' + sent + '件');
+        self.driveLog('Drive上で音源が揃っている曲: ' + withAudio + ' / ' + self.state.tracks.length + '曲');
+        if(withAudio < self.state.tracks.length) {
+          self.driveLog('⚠ 音源が足りていません。他の端末では音が出ません。mp3をドラッグしてから、もう一度「Driveへ保存」を押してください');
+          self.showToast('曲目リストは保存しましたが、音源が足りません');
+        } else {
+          self.showToast('Driveに保存しました');
+        }
+        self.openDriveStatus();
       }, fail);
     };
     nextAudio();
