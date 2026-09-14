@@ -219,7 +219,7 @@
 </div>
 
 <audio id="player" preload="metadata"></audio>
-<input type="file" id="fileInput" accept="audio/*" multiple style="display:none">
+<input type="file" id="fileInput" multiple style="display:none">
 <input type="file" id="jsonInput" accept=".json,application/json" style="display:none">
 <div class="drop-overlay" id="dropOverlay"><div class="drop-overlay-inner"><strong>DROP</strong></div></div>
 
@@ -289,7 +289,7 @@
       <div class="field-buttons">
         <button type="button" class="btn" id="driveSignInBtn">Googleにサインイン</button>
         <button type="button" class="btn btn-accent" id="driveUpBtn">Driveへ保存</button>
-        <button type="button" class="btn" id="driveDownBtn">Driveから取り込み</button>
+        <button type="button" class="btn" id="driveDownBtn">Driveから読み込む</button>
       </div>
     </div>
     <div class="field">
@@ -711,6 +711,9 @@ var app = {
       audio.src = self.state.audioUrl;
       self.render();
       setTimeout(function() { self.updateLyricsHighlight(); }, 50);
+      audio.onerror = function() {
+        self.showToast('この形式は再生できません: ' + track.title + '（ブラウザが対応していない可能性があります）');
+      };
       audio.play().catch(function(){});
       self.setupMediaSession(track);
       self.toggleMenu(false);
@@ -731,10 +734,20 @@ var app = {
 
   handleFiles: function(files) {
     var self = this;
-    var list = Array.from(files).filter(function(f) {
-      return /\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(f.name) || (f.type && f.type.indexOf('audio/') === 0);
+    var all = Array.from(files);
+    // 明らかに音源でないものだけ除く。それ以外は形式を問わず受け付ける
+    var skipped = all.filter(function(f) {
+      return /\.(json|txt|lrc|md|html|htm|css|js|csv|zip|pdf|docx?|xlsx?)$/i.test(f.name)
+          || (f.type && (f.type.indexOf('image/') === 0));
     });
-    if(!list.length) return;
+    var list = all.filter(function(f) { return skipped.indexOf(f) < 0; });
+    if(skipped.length) {
+      this.showToast('音源として読めないファイルを除きました: ' + skipped.map(function(f){return f.name;}).join('、'));
+    }
+    if(!list.length) {
+      if(all.length) alert('音源ファイルが見つかりませんでした。\n選んだファイル: ' + all.map(function(f){return f.name;}).join('、'));
+      return;
+    }
     var i = 0;
     var next = function() {
       if(i >= list.length) return;
@@ -1083,8 +1096,9 @@ var app = {
 
   // ===== Google Drive 同期 =====
   drive: {
-    SCOPE: 'https://www.googleapis.com/auth/drive.file',
+    SCOPE: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
     FOLDER_NAME: 'KNOX Player',
+    AUDIO_FOLDER: 'KNOX 音源',
     LIB_NAME: 'library.json',
     token: null, expiresAt: 0, tokenClient: null, folderId: null, pending: null,
 
@@ -1148,6 +1162,31 @@ var app = {
           method: 'POST', headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({name: self.FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder'})
         }, function(f) { self.folderId = f.id; cb(f.id); }, err);
+      }, err);
+    },
+
+    // 手で放り込む用のフォルダ。読み取り権限があるので中身が見える
+    ensureAudioFolder: function(cb, err) {
+      var self = this;
+      if(this.audioFolderId) { cb(this.audioFolderId); return; }
+      var q = "mimeType='application/vnd.google-apps.folder' and name='" + this.AUDIO_FOLDER + "' and trashed=false";
+      this.api('https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q) + '&fields=files(id,name)', {}, function(res) {
+        if(res.files && res.files.length) { self.audioFolderId = res.files[0].id; cb(self.audioFolderId); return; }
+        self.api('https://www.googleapis.com/drive/v3/files?fields=id', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({name: self.AUDIO_FOLDER, mimeType: 'application/vnd.google-apps.folder'})
+        }, function(f) { self.audioFolderId = f.id; cb(f.id); }, err);
+      }, err);
+    },
+
+    listAudioFolder: function(cb, err) {
+      var self = this;
+      this.ensureAudioFolder(function(fid) {
+        var q = "'" + fid + "' in parents and trashed=false";
+        self.api('https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q) +
+                 '&fields=files(id,name,size,mimeType)&pageSize=1000', {}, function(res) {
+          cb(res.files || []);
+        }, err);
       }, err);
     },
 
@@ -1344,13 +1383,54 @@ var app = {
     var self = this;
     var fail = function(m) { self.driveLog('エラー: ' + m); };
     this.drive.findInFolder(this.drive.LIB_NAME, function(fileId) {
-      if(!fileId) { self.driveLog('Driveにデータがありません。先に「Driveへ保存」をしてください'); return; }
+      if(!fileId) {
+        self.driveLog('曲目リストはまだありません。音源フォルダだけ見ます');
+        self.scanAudioFolder();
+        return;
+      }
       self.drive.getJson(fileId, function(lib) {
         if(!lib || !Array.isArray(lib.tracks)) { fail('データの形式が読めません'); return; }
-        self.driveLog(lib.tracks.length + '曲を取り込みます');
-        self.restoreLibrary(lib);
-        self.driveLog('完了。音源は再生ボタンを押したときに自動で取得します');
+        self.driveLog(lib.tracks.length + '曲ぶんの歌詞と同期データを取り込みます');
+        self.restoreLibrary(lib, true);
+        self.scanAudioFolder();
       }, fail);
+    }, fail);
+  },
+
+  // 「KNOX 音源」フォルダに放り込まれたファイルを拾って曲にひも付ける
+  scanAudioFolder: function() {
+    var self = this;
+    var fail = function(m) { self.driveLog('エラー: ' + m); };
+    this.driveLog('Driveの「' + this.drive.AUDIO_FOLDER + '」フォルダを見ています…');
+    this.drive.listAudioFolder(function(files) {
+      var audio = files.filter(function(f) {
+        return !/\.(json|txt|lrc|md|jpg|jpeg|png|gif|webp)$/i.test(f.name) &&
+               f.mimeType !== 'application/vnd.google-apps.folder';
+      });
+      if(!audio.length) {
+        self.driveLog('「' + self.drive.AUDIO_FOLDER + '」フォルダは空でした');
+        self.driveLog('完了。このフォルダに音源を入れておけば、次に読み込んだ時に自動で認識します');
+        self.render();
+        return;
+      }
+      self.driveLog(audio.length + '個のファイルが見つかりました');
+      var linked = 0, added = 0;
+      audio.forEach(function(f) {
+        var base = f.name.replace(/\.[^.]+$/, '');
+        var track = self.state.tracks.find(function(t) { return t.title === base; });
+        if(track) {
+          if(track.driveAudioId !== f.id) { track.driveAudioId = f.id; linked++; }
+        } else {
+          self.state.tracks.push({id: self.genId(), title: base, album: 'Others', lyrics: '',
+            syncData: null, interludes: [], hasAudio: false, driveAudioId: f.id});
+          added++;
+        }
+      });
+      self.saveData();
+      self.render();
+      self.driveLog('音源をひも付けました: ' + linked + '曲' + (added ? '（歌詞の無い新規 ' + added + '曲も追加）' : ''));
+      self.driveLog('完了。曲をタップすれば、その場で音源が降りてきます');
+      self.showToast('Driveから読み込みました');
     }, fail);
   },
 
@@ -1393,9 +1473,9 @@ var app = {
     this.showToast(this.state.tracks.length + '曲を書き出しました（音源は含みません）');
   },
 
-  restoreLibrary: function(data) {
+  restoreLibrary: function(data, silent) {
     var self = this;
-    if(!confirm('バックアップから ' + data.tracks.length + '曲を復元します。\n同じ曲がある場合は歌詞と同期データが上書きされます。よろしいですか？')) return;
+    if(!silent && !confirm('バックアップから ' + data.tracks.length + '曲を復元します。\n同じ曲がある場合は歌詞と同期データが上書きされます。よろしいですか？')) return;
     var added = 0, updated = 0;
     data.tracks.forEach(function(item) {
       if(!item || !item.title) return;
@@ -1426,7 +1506,7 @@ var app = {
     this.saveData();
     this.render();
     this.updateLyricsHighlight();
-    this.showToast('復元しました（新規 ' + added + '曲 / 更新 ' + updated + '曲）');
+    if(!silent) this.showToast('復元しました（新規 ' + added + '曲 / 更新 ' + updated + '曲）');
   },
 
   // 1曲ぶんのJSON（この曲を書き出し で作ったもの）を選択中の曲に取り込む
