@@ -191,7 +191,8 @@
     <div class="sidebar" id="sidebar">
       <div class="sidebar-scroll" id="sidebarScroll"></div>
       <div class="sidebar-footer">
-        <button type="button" class="dropzone-hint" id="dropzoneHint">ドラッグ<br>または選択</button>
+        <button type="button" class="dropzone-hint" id="dropzoneHint">ファイルを選ぶ</button>
+        <button type="button" class="dropzone-hint" id="folderHint" style="margin-top:6px;">フォルダごと取り込む<br><span style="font-size:10px;">フォルダ名がアルバムになります</span></button>
       </div>
     </div>
 
@@ -230,6 +231,7 @@
 
 <audio id="player" preload="metadata"></audio>
 <input type="file" id="fileInput" multiple style="display:none">
+<input type="file" id="folderInput" webkitdirectory directory multiple style="display:none">
 <input type="file" id="jsonInput" accept=".json,application/json" style="display:none">
 <div class="drop-overlay" id="dropOverlay"><div class="drop-overlay-inner"><strong>DROP</strong></div></div>
 
@@ -360,11 +362,43 @@ var app = {
     shuffle: false,
     playlists: [],
     activePlaylist: null,
+    albumCovers: {},
     sync: null,
     editingId: null,
     covers: {}
   },
-  albums: ['ARRANGEMENT', 'ORIGINALS', 'SINGLES', 'Others'],
+  albumOrder: ['ARRANGEMENT', 'ORIGINALS', 'SINGLES'],
+
+  // 実際に曲が持っているアルバム名を集める。固定リストではない
+  albumList: function() {
+    var self = this;
+    var names = [];
+    this.state.tracks.forEach(function(t) {
+      var a = t.album || 'Others';
+      if(names.indexOf(a) < 0) names.push(a);
+    });
+    names.sort(function(x, y) {
+      var ix = self.albumOrder.indexOf(x), iy = self.albumOrder.indexOf(y);
+      if(x === 'Others') return 1;
+      if(y === 'Others') return -1;
+      if(ix >= 0 && iy >= 0) return ix - iy;
+      if(ix >= 0) return -1;
+      if(iy >= 0) return 1;
+      return x.localeCompare(y, 'ja');
+    });
+    return names;
+  },
+
+  // ジャケットは曲ごと → 無ければアルバムの絵 → 無ければプレースホルダ
+  coverOf: function(track) {
+    return this.state.covers[track.id] || this.state.albumCovers[track.album || 'Others'] || null;
+  },
+
+  saveAlbumCovers: function() {
+    if(!this.db) return;
+    this.db.transaction('tracks', 'readwrite').objectStore('tracks')
+      .put({id: '__albumcovers__', albumCovers: this.state.albumCovers});
+  },
 
   init: function() {
     var self = this;
@@ -399,6 +433,15 @@ var app = {
 
     document.getElementById('fileInput').addEventListener('change', function() {
       self.handleFiles(this.files);
+      this.value = '';
+    });
+
+    document.getElementById('folderHint').addEventListener('click', function() {
+      document.getElementById('folderInput').click();
+    });
+
+    document.getElementById('folderInput').addEventListener('change', function() {
+      self.handleFolder(this.files);
       this.value = '';
     });
 
@@ -902,6 +945,69 @@ var app = {
     next();
   },
 
+  // フォルダ名をアルバム名にして丸ごと取り込む。画像はアルバムのジャケットにする
+  handleFolder: function(fileList) {
+    var self = this;
+    var files = Array.from(fileList);
+    if(!files.length) return;
+    var groups = {};
+    files.forEach(function(f) {
+      var rel = f.webkitRelativePath || f.name;
+      var parts = rel.split('/');
+      // 一番深いフォルダ名をアルバム名にする（ルート直下ならそのフォルダ名）
+      var album = parts.length >= 2 ? parts[parts.length - 2] : 'Others';
+      (groups[album] = groups[album] || []).push(f);
+    });
+
+    var albums = Object.keys(groups);
+    var ai = 0;
+    var nextAlbum = function() {
+      if(ai >= albums.length) {
+        self.saveData(); self.render();
+        self.showToast('取り込みました: ' + albums.join('、'));
+        return;
+      }
+      var album = albums[ai++];
+      var list = groups[album];
+      var image = list.find(function(f) { return /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name) || (f.type && f.type.indexOf('image/') === 0); });
+      var audios = list.filter(function(f) {
+        return f !== image && !/\.(json|txt|lrc|md|html?|css|js|csv|zip|pdf|docx?|xlsx?|ini|db)$/i.test(f.name)
+               && !(f.type && f.type.indexOf('image/') === 0);
+      });
+
+      var afterCover = function() {
+        var i = 0;
+        var nextFile = function() {
+          if(i >= audios.length) { nextAlbum(); return; }
+          var file = audios[i++];
+          var reader = new FileReader();
+          reader.onload = function(e) {
+            var base = file.name.replace(/\.[^.]+$/, '');
+            var blob = new Blob([e.target.result], {type: file.type || 'audio/mpeg'});
+            var exist = self.state.tracks.find(function(t) { return t.title === base; });
+            var track;
+            if(exist) { track = exist; track.album = album; }
+            else {
+              track = {id: self.genId(), title: base, album: album, lyrics: '',
+                       syncData: null, interludes: [], hasAudio: true, driveAudioId: null};
+              self.state.tracks.push(track);
+            }
+            self.attachAudio(track, blob, '取り込み: ' + album + ' / ' + base, nextFile);
+          };
+          reader.readAsArrayBuffer(file);
+        };
+        nextFile();
+      };
+
+      if(image) {
+        var ir = new FileReader();
+        ir.onload = function(ev) { self.state.albumCovers[album] = ev.target.result; self.saveAlbumCovers(); afterCover(); };
+        ir.readAsDataURL(image);
+      } else { afterCover(); }
+    };
+    nextAlbum();
+  },
+
   newTrack: function(title) {
     var track = {id: this.genId(), title: title, album: 'Others', lyrics: '',
                  syncData: null, interludes: [], hasAudio: true, driveAudioId: null};
@@ -979,8 +1085,8 @@ var app = {
       sidebarHtml += '<div class="pl-note">「' + active.name + '」を編集中<br>曲の右の ＋ で追加、✓ で外せます<br>再生と曲送りはこの中だけになります</div>';
     }
 
-    this.albums.forEach(function(album) {
-      var tracks = self.state.tracks.filter(function(t) { return t.album === album; });
+    this.albumList().forEach(function(album) {
+      var tracks = self.state.tracks.filter(function(t) { return (t.album || 'Others') === album; });
       sidebarHtml += '<div class="album-group"><div class="album-header" onclick="app.toggleAlbum(\'' + album + '\')">';
       sidebarHtml += '<span class="album-toggle open">▶</span>';
       sidebarHtml += '<span class="album-title">' + album + '</span>';
@@ -1007,7 +1113,7 @@ var app = {
       stageHtml = '<div class="stage-empty"><h2>曲がありません</h2><p>左から選んでください</p></div>';
     } else {
       var lines = (track.lyrics || '').split('\n').filter(function(l) { return l.trim(); });
-      var cover = this.state.covers[track.id];
+      var cover = this.coverOf(track);
       var isPlaying = this.state.playingId === track.id;
 
       stageHtml = '<div class="now-panel">';
@@ -1331,6 +1437,12 @@ var app = {
       }, err);
     },
 
+    listById: function(fid, cb, err) {
+      var q = "'" + fid + "' in parents and trashed=false";
+      this.api('https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q) +
+               '&fields=files(id,name,mimeType)&pageSize=1000', {}, function(res) { cb(res.files || []); }, err);
+    },
+
     listAudioFolder: function(cb, err) {
       var self = this;
       this.ensureAudioFolder(function(fid) {
@@ -1549,40 +1661,73 @@ var app = {
     }, fail);
   },
 
-  // 「KNOX 音源」フォルダに放り込まれたファイルを拾って曲にひも付ける
+  // 「KNOX 音源」の中を見る。サブフォルダはアルバムとして扱う
   scanAudioFolder: function() {
     var self = this;
     var fail = function(m) { self.driveLog('エラー: ' + m); };
-    this.driveLog('Driveの「' + this.drive.AUDIO_FOLDER + '」フォルダを見ています…');
-    this.drive.listAudioFolder(function(files) {
-      var audio = files.filter(function(f) {
-        return !/\.(json|txt|lrc|md|jpg|jpeg|png|gif|webp)$/i.test(f.name) &&
-               f.mimeType !== 'application/vnd.google-apps.folder';
-      });
-      if(!audio.length) {
-        self.driveLog('「' + self.drive.AUDIO_FOLDER + '」フォルダは空でした');
-        self.driveLog('完了。このフォルダに音源を入れておけば、次に読み込んだ時に自動で認識します');
-        self.render();
-        return;
-      }
-      self.driveLog(audio.length + '個のファイルが見つかりました');
-      var linked = 0, added = 0;
-      audio.forEach(function(f) {
-        var base = f.name.replace(/\.[^.]+$/, '');
-        var track = self.state.tracks.find(function(t) { return t.title === base; });
-        if(track) {
-          if(track.driveAudioId !== f.id) { track.driveAudioId = f.id; linked++; }
-        } else {
-          self.state.tracks.push({id: self.genId(), title: base, album: 'Others', lyrics: '',
-            syncData: null, interludes: [], hasAudio: false, driveAudioId: f.id});
-          added++;
+    var FOLDER = 'application/vnd.google-apps.folder';
+    var isImage = function(f) { return /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name) || (f.mimeType || '').indexOf('image/') === 0; };
+    var isJunk = function(f) { return /\.(json|txt|lrc|md|html?|css|js|csv|zip|pdf|docx?|xlsx?|ini)$/i.test(f.name); };
+
+    this.driveLog('Driveの「' + this.drive.AUDIO_FOLDER + '」を見ています…');
+    this.drive.listAudioFolder(function(entries) {
+      var folders = entries.filter(function(f) { return f.mimeType === FOLDER; });
+      var loose = entries.filter(function(f) { return f.mimeType !== FOLDER && !isImage(f) && !isJunk(f); });
+      var linked = 0, added = 0, albums = [];
+
+      var attach = function(files, album) {
+        files.forEach(function(f) {
+          var base = f.name.replace(/\.[^.]+$/, '');
+          var track = self.state.tracks.find(function(t) { return t.title === base; });
+          if(track) {
+            track.driveAudioId = f.id;
+            if(album) track.album = album;
+            linked++;
+          } else {
+            self.state.tracks.push({id: self.genId(), title: base, album: album || 'Others', lyrics: '',
+              syncData: null, interludes: [], hasAudio: false, driveAudioId: f.id});
+            added++;
+          }
+        });
+      };
+
+      attach(loose, null);
+
+      var fi = 0;
+      var nextFolder = function() {
+        if(fi >= folders.length) { finish(); return; }
+        var folder = folders[fi++];
+        self.driveLog('アルバム「' + folder.name + '」を読み込み中…');
+        albums.push(folder.name);
+        self.drive.listById(folder.id, function(items) {
+          attach(items.filter(function(f) { return f.mimeType !== FOLDER && !isImage(f) && !isJunk(f); }), folder.name);
+          var art = items.find(isImage);
+          if(art && !self.state.albumCovers[folder.name]) {
+            self.drive.getBlob(art.id, function(blob) {
+              var r = new FileReader();
+              r.onload = function(e) { self.state.albumCovers[folder.name] = e.target.result; self.saveAlbumCovers(); nextFolder(); };
+              r.readAsDataURL(blob);
+            }, function() { nextFolder(); });
+          } else { nextFolder(); }
+        }, fail);
+      };
+
+      var finish = function() {
+        if(!linked && !added) {
+          self.driveLog('「' + self.drive.AUDIO_FOLDER + '」には音源が見つかりませんでした');
+          self.driveLog('完了。アルバム名のフォルダを作って、その中に音源とジャケット画像を入れておけば、次から自動で取り込みます');
+          self.render();
+          return;
         }
-      });
-      self.saveData();
-      self.render();
-      self.driveLog('音源をひも付けました: ' + linked + '曲' + (added ? '（歌詞の無い新規 ' + added + '曲も追加）' : ''));
-      self.driveLog('完了。曲をタップすれば、その場で音源が降りてきます');
-      self.showToast('Driveから読み込みました');
+        self.saveData();
+        self.render();
+        self.driveLog('音源をひも付けました: ' + linked + '曲' + (added ? ' / 新規 ' + added + '曲' : ''));
+        if(albums.length) self.driveLog('アルバム: ' + albums.join('、'));
+        self.driveLog('完了。曲をタップすれば、その場で音源が降りてきます');
+        self.showToast('Driveから読み込みました');
+      };
+
+      nextFolder();
     }, fail);
   },
 
@@ -1633,7 +1778,7 @@ var app = {
       if(!item || !item.title) return;
       var found = self.state.tracks.find(function(t) { return t.id === item.id; })
                || self.state.tracks.find(function(t) { return t.title === item.title && (t.album || '') === (item.album || ''); });
-      var album = self.albums.indexOf(item.album) >= 0 ? item.album : 'Others';
+      var album = item.album || 'Others';
       if(found) {
         if(typeof item.lyrics === 'string') found.lyrics = item.lyrics;
         if(Array.isArray(item.syncData) && item.syncData.length) found.syncData = item.syncData;
@@ -1721,6 +1866,7 @@ var app = {
   saveData: function() {
     var self = this;
     this.savePlaylists();
+    this.saveAlbumCovers();
     this.state.tracks.forEach(function(track) {
       var tx = self.db.transaction('tracks', 'readwrite');
       var store = tx.objectStore('tracks');
@@ -1754,7 +1900,9 @@ var app = {
       var data = req.result;
       var meta = data.find(function(it) { return it.id === '__playlists__'; });
       self.state.playlists = (meta && Array.isArray(meta.playlists)) ? meta.playlists : [];
-      data = data.filter(function(it) { return it.id !== '__playlists__'; });
+      var ac = data.find(function(it) { return it.id === '__albumcovers__'; });
+      self.state.albumCovers = (ac && ac.albumCovers) ? ac.albumCovers : {};
+      data = data.filter(function(it) { return it.id !== '__playlists__' && it.id !== '__albumcovers__'; });
       self.state.tracks = data.map(function(item) {
         if(item.cover) self.state.covers[item.id] = item.cover;
         return {
