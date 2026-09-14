@@ -367,31 +367,34 @@ var app = {
     editingId: null,
     covers: {}
   },
-  albumOrder: ['ARRANGEMENT', 'ORIGINALS', 'SINGLES'],
+  OTHER: 'その他',
 
-  // 実際に曲が持っているアルバム名を集める。固定リストではない
+  // 曲が実際に持っているアルバム名をそのまま集める。決め打ちの分類は無い
   albumList: function() {
     var self = this;
     var names = [];
     this.state.tracks.forEach(function(t) {
-      var a = t.album || 'Others';
+      var a = t.album || self.OTHER;
       if(names.indexOf(a) < 0) names.push(a);
     });
     names.sort(function(x, y) {
-      var ix = self.albumOrder.indexOf(x), iy = self.albumOrder.indexOf(y);
-      if(x === 'Others') return 1;
-      if(y === 'Others') return -1;
-      if(ix >= 0 && iy >= 0) return ix - iy;
-      if(ix >= 0) return -1;
-      if(iy >= 0) return 1;
+      if(x === self.OTHER) return 1;
+      if(y === self.OTHER) return -1;
       return x.localeCompare(y, 'ja');
     });
     return names;
   },
 
   // ジャケットは曲ごと → 無ければアルバムの絵 → 無ければプレースホルダ
+  // 以前こちらが勝手に付けていた分類は「その他」に寄せる
+  normalizeAlbum: function(name) {
+    if(!name) return this.OTHER;
+    if(['Others', 'ARRANGEMENT', 'ORIGINALS', 'SINGLES'].indexOf(name) >= 0) return this.OTHER;
+    return name;
+  },
+
   coverOf: function(track) {
-    return this.state.covers[track.id] || this.state.albumCovers[track.album || 'Others'] || null;
+    return this.state.covers[track.id] || this.state.albumCovers[track.album || this.OTHER] || null;
   },
 
   saveAlbumCovers: function() {
@@ -955,7 +958,7 @@ var app = {
       var rel = f.webkitRelativePath || f.name;
       var parts = rel.split('/');
       // 一番深いフォルダ名をアルバム名にする（ルート直下ならそのフォルダ名）
-      var album = parts.length >= 2 ? parts[parts.length - 2] : 'Others';
+      var album = parts.length >= 2 ? parts[parts.length - 2] : self.OTHER;
       (groups[album] = groups[album] || []).push(f);
     });
 
@@ -1009,7 +1012,7 @@ var app = {
   },
 
   newTrack: function(title) {
-    var track = {id: this.genId(), title: title, album: 'Others', lyrics: '',
+    var track = {id: this.genId(), title: title, album: this.OTHER, lyrics: '',
                  syncData: null, interludes: [], hasAudio: true, driveAudioId: null};
     this.state.tracks.push(track);
     return track;
@@ -1086,7 +1089,7 @@ var app = {
     }
 
     this.albumList().forEach(function(album) {
-      var tracks = self.state.tracks.filter(function(t) { return (t.album || 'Others') === album; });
+      var tracks = self.state.tracks.filter(function(t) { return (t.album || self.OTHER) === album; });
       sidebarHtml += '<div class="album-group"><div class="album-header" onclick="app.toggleAlbum(\'' + album + '\')">';
       sidebarHtml += '<span class="album-toggle open">▶</span>';
       sidebarHtml += '<span class="album-title">' + album + '</span>';
@@ -1684,7 +1687,7 @@ var app = {
             if(album) track.album = album;
             linked++;
           } else {
-            self.state.tracks.push({id: self.genId(), title: base, album: album || 'Others', lyrics: '',
+            self.state.tracks.push({id: self.genId(), title: base, album: album || self.OTHER, lyrics: '',
               syncData: null, interludes: [], hasAudio: false, driveAudioId: f.id});
             added++;
           }
@@ -1778,7 +1781,7 @@ var app = {
       if(!item || !item.title) return;
       var found = self.state.tracks.find(function(t) { return t.id === item.id; })
                || self.state.tracks.find(function(t) { return t.title === item.title && (t.album || '') === (item.album || ''); });
-      var album = item.album || 'Others';
+      var album = self.normalizeAlbum(item.album);
       if(found) {
         if(typeof item.lyrics === 'string') found.lyrics = item.lyrics;
         if(Array.isArray(item.syncData) && item.syncData.length) found.syncData = item.syncData;
@@ -1908,10 +1911,10 @@ var app = {
         return {
           id: item.id,
           title: item.title,
-          album: item.album,
           lyrics: item.lyrics,
           syncData: item.syncData,
           interludes: item.interludes || [],
+          album: self.normalizeAlbum(item.album),
           hasAudio: !!item.audio,
           driveAudioId: item.driveAudioId || null
         };
