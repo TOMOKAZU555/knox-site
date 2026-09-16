@@ -362,7 +362,7 @@
 window.KNOX_CLIENT_ID = '196756138644-m0633ld7rlmfla8c7j7ddv02l6qb59s9.apps.googleusercontent.com';
 
 var app = {
-  VERSION: 'v41',
+  VERSION: 'v43',
   db: null,
   state: {
     tracks: [],
@@ -1663,15 +1663,34 @@ var app = {
       this.tokenClient.requestAccessToken({prompt: this.token ? '' : 'consent'});
     },
 
+    // 失敗した時に「何が」「なぜ」を日本語で出す
+    explain: function(status, body) {
+      var m = {401: 'サインインの有効期限が切れています。「サインイン」を押し直してください',
+               403: 'Googleに断られました（権限不足か、短時間に送りすぎ）。少し待ってからもう一度',
+               404: '見つかりませんでした（別のGoogleアカウントで入っている可能性があります）',
+               429: 'Googleへの問い合わせが多すぎます。少し待ってからもう一度',
+               500: 'Google側が一時的に不調です。少し待ってからもう一度',
+               503: 'Google側が一時的に不調です。少し待ってからもう一度'}[status];
+      var detail = '';
+      try { var j = JSON.parse(body); if(j.error && j.error.message) detail = j.error.message; } catch(e) { detail = (body || '').slice(0, 150); }
+      return (m || ('通信に失敗しました（' + status + '）')) + (detail ? '｜' + detail : '');
+    },
+
     api: function(url, opts, cb, err) {
+      var self = this;
       this.auth(function(tok) {
         opts = opts || {};
         opts.headers = opts.headers || {};
         opts.headers['Authorization'] = 'Bearer ' + tok;
         fetch(url, opts).then(function(r) {
-          if(!r.ok) return r.text().then(function(t) { throw new Error(r.status + ' ' + t.slice(0, 200)); });
+          if(!r.ok) return r.text().then(function(t) {
+            if(r.status === 401) { self.token = null; self.expiresAt = 0; }
+            throw new Error(self.explain(r.status, t));
+          });
           return r.json();
-        }).then(cb).catch(function(e) { err(e.message); });
+        }).then(cb).catch(function(e) {
+          err(e.message === 'Failed to fetch' ? 'ネットにつながりませんでした（電波か、通信の設定を確認してください）' : e.message);
+        });
       }, err);
     },
 
@@ -1694,7 +1713,28 @@ var app = {
       if(this.audioFolderId) { cb(this.audioFolderId); return; }
       var q = "mimeType='application/vnd.google-apps.folder' and name='" + this.AUDIO_FOLDER + "' and trashed=false";
       this.api('https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q) + '&fields=files(id,name)', {}, function(res) {
-        if(res.files && res.files.length) { self.audioFolderId = res.files[0].id; cb(self.audioFolderId); return; }
+        var hits = res.files || [];
+        // 同じ名前のフォルダが複数あると、空のほうを見て「データがありません」になる
+        if(hits.length > 1) {
+          if(app.driveLog) app.driveLog('「' + self.AUDIO_FOLDER + '」が' + hits.length + '個あります。中身の多いほうを使います');
+          var best = null, i = 0;
+          var nextHit = function() {
+            if(i >= hits.length) {
+              self.audioFolderId = (best || hits[0]).id;
+              cb(self.audioFolderId);
+              return;
+            }
+            var h = hits[i++];
+            self.listById(h.id, function(items) {
+              var n = items.length;
+              if(!best || n > best.n) best = {id: h.id, n: n};
+              nextHit();
+            }, function() { nextHit(); });
+          };
+          nextHit();
+          return;
+        }
+        if(hits.length) { self.audioFolderId = hits[0].id; cb(self.audioFolderId); return; }
         self.api('https://www.googleapis.com/drive/v3/files?fields=id', {
           method: 'POST', headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({name: self.AUDIO_FOLDER, mimeType: 'application/vnd.google-apps.folder'})
@@ -1955,6 +1995,7 @@ var app = {
 
     this.driveLog('Driveの「' + this.drive.AUDIO_FOLDER + '」を見ています…');
     this.drive.listAudioFolder(function(entries) {
+      self.driveLog('見つかった中身: ' + entries.length + '件');
       var folders = entries.filter(function(f) { return f.mimeType === FOLDER; });
       var loose = entries.filter(function(f) { return f.mimeType !== FOLDER && !isImage(f) && !isJunk(f); });
       var linked = 0, added = 0, albums = [];
@@ -2030,10 +2071,20 @@ var app = {
 
       var finish = function() {
         if(!linked && !added && !lyricsIn) {
-          self.driveLog('「' + self.drive.AUDIO_FOLDER + '」には音源が見つかりませんでした');
+          self.driveLog('「' + self.drive.AUDIO_FOLDER + '」には音源がありませんでした');
           reportLyrics();
-          self.driveLog('完了。アルバム名のフォルダを作って、その中に音源・ジャケット画像・歌詞ファイル（LRC/SRT/ASS/TXT）を入れておけば、次から自動で取り込みます');
-          self.render();
+          // 曲目リストの時点で全曲に音源がひも付いているなら、探し直す必要はない
+          var need = self.state.tracks.filter(function(t) { return !t.driveAudioId; });
+          if(self.state.tracks.length && !need.length) {
+            self.saveData();
+            self.render();
+            self.driveLog('全' + self.state.tracks.length + '曲ぶん、音源のありかは分かっています');
+            self.driveLog('完了。曲をタップすれば、その場で音源が降りてきます');
+            self.showToast('Driveから読み込みました');
+            return;
+          }
+          // フォルダの名前や置き場所を気にしなくていいように、Drive全体から探す
+          self.scanWholeDrive();
           return;
         }
         self.saveData();
@@ -2046,6 +2097,102 @@ var app = {
       };
 
       nextFolder();
+    }, fail);
+  },
+
+  // どのフォルダに入れても見つかるように、Drive全体から曲名で探す
+  scanWholeDrive: function() {
+    var self = this;
+    var fail = function(m) { self.driveLog('エラー: ' + m); self.render(); };
+    if(!this.state.tracks.length) {
+      this.driveLog('先に曲目リストが要ります。PC側で「Driveへ保存」をしてください');
+      this.driveLog('完了');
+      this.render();
+      return;
+    }
+    this.driveLog('Drive全体から曲名で探しています…');
+
+    var AUD = ['.opus', '.wav', '.mp3', '.m4a', '.aac', '.flac', '.ogg', '.oga', '.webm', '.aiff', '.aif'];
+    var LYR = ['.lrc', '.srt', '.ass', '.ssa', '.vtt'];
+    var names = AUD.concat(LYR);
+    var q = '(' + names.map(function(e) { return "name contains '" + e + "'"; }).join(' or ') + ')'
+          + " and trashed=false and mimeType != 'application/vnd.google-apps.folder'";
+
+    this.drive.api('https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q)
+      + '&fields=files(id,name,mimeType,parents)&pageSize=1000&supportsAllDrives=true', {}, function(res) {
+      var files = res.files || [];
+      self.driveLog('Driveの中の音源・歌詞ファイル: ' + files.length + '件');
+      if(!files.length) {
+        self.driveLog('Driveに音源が見当たりません。パソコンのプレイヤーで「Driveへ保存」を済ませてください');
+        self.driveLog('完了');
+        self.render();
+        return;
+      }
+
+      var linked = 0, lyricJobs = [], parents = {};
+      files.forEach(function(f) {
+        var isLyric = self.isLyricFile(f.name);
+        var track = self.findTrackByName(isLyric ? self.lyricBase(f.name) : f.name, false);
+        if(!track) return;
+        if(isLyric) { lyricJobs.push({file: f, track: track}); return; }
+        track.driveAudioId = f.id;
+        linked++;
+        if(f.parents && f.parents[0]) {
+          parents[f.parents[0]] = parents[f.parents[0]] || [];
+          parents[f.parents[0]].push(track);
+        }
+      });
+
+      self.driveLog('曲名が一致した音源: ' + linked + '曲');
+      if(!linked && !lyricJobs.length) {
+        self.driveLog('曲名の合う音源がありませんでした。ファイル名を曲名と同じにしてください');
+        self.driveLog('完了');
+        self.render();
+        return;
+      }
+
+      // 入っていたフォルダの名前をアルバム名にする
+      var pids = Object.keys(parents), pi = 0;
+      var nextParent = function() {
+        if(pi >= pids.length) { pullLyrics(); return; }
+        var pid = pids[pi++];
+        self.drive.api('https://www.googleapis.com/drive/v3/files/' + pid + '?fields=name', {}, function(info) {
+          var nm = info && info.name ? info.name : '';
+          if(nm && !/^(マイドライブ|My Drive|KNOX Player)$/i.test(nm) && nm !== self.drive.AUDIO_FOLDER) {
+            parents[pid].forEach(function(t) { t.album = self.normalizeAlbum(nm); });
+          }
+          nextParent();
+        }, function() { nextParent(); });
+      };
+
+      var li = 0, lyricsIn = 0, lyricsTimed = 0;
+      var pullLyrics = function() {
+        if(li >= lyricJobs.length) { done(); return; }
+        var job = lyricJobs[li++];
+        self.drive.getBlob(job.file.id, function(blob) {
+          self.readLyricBlob(blob, function(text) {
+            var parsed = text === null ? null : self.parseLyricFile(job.file.name, text);
+            if(parsed) {
+              job.track.lyrics = parsed.lyrics;
+              if(parsed.syncData.length) { job.track.syncData = parsed.syncData; lyricsTimed++; }
+              lyricsIn++;
+            }
+            pullLyrics();
+          });
+        }, function() { pullLyrics(); });
+      };
+
+      var done = function() {
+        self.state.tracks.forEach(function(t) { if(t.driveAudioId && t.hasAudio !== true) t.hasAudio = false; });
+        self.saveData();
+        self.render();
+        if(lyricsIn) self.driveLog('歌詞を入れました: ' + lyricsIn + '曲'
+          + (lyricsTimed ? '（うち' + lyricsTimed + '曲はタイミング付き）' : ''));
+        self.driveLog('完了。曲をタップすれば、その場で音源が降りてきます');
+        self.showToast('Driveから' + linked + '曲を見つけました');
+      };
+
+      nextParent();
     }, fail);
   },
 
