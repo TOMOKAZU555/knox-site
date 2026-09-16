@@ -362,7 +362,7 @@
 window.KNOX_CLIENT_ID = '196756138644-m0633ld7rlmfla8c7j7ddv02l6qb59s9.apps.googleusercontent.com';
 
 var app = {
-  VERSION: 'v40',
+  VERSION: 'v41',
   db: null,
   state: {
     tracks: [],
@@ -540,6 +540,8 @@ var app = {
 
   init: function() {
     var self = this;
+    // 端末が勝手に音源を消してしまわないようにお願いしておく
+    try { if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function(){}); } catch(e) {}
     var dbReq = indexedDB.open('KnoxDB', 1);
 
     dbReq.onupgradeneeded = function(e) {
@@ -688,16 +690,24 @@ var app = {
     });
 
     audio.addEventListener('ended', function() {
-      if(self.state.loopMode === 2) {
-        audio.currentTime = 0;
-        audio.play().catch(function(){});
-        return;
-      }
-      if(self.state.loopMode === 1 || self.state.shuffle) {
-        var t = self.neighborTrack(1);
-        if(t) self.playTrack(t.id);
-      }
+      self.failStreak = 0;
+      self.advance('end');
     });
+
+    // 再生が失敗した時に黙って止まらない。理由を出して次の曲へ進む
+    audio.addEventListener('error', function() {
+      if(!self.state.playingId) return;
+      var e = audio.error || {};
+      var why = {1:'読み込みが中断されました', 2:'通信が切れました', 3:'音声を展開できませんでした', 4:'この形式は再生できません'}[e.code]
+                || '再生できませんでした';
+      var t = self.state.tracks.find(function(x) { return x.id === self.state.playingId; });
+      self.showToast((t ? t.title + '：' : '') + why);
+      self.failStreak = (self.failStreak || 0) + 1;
+      if(self.failStreak >= 3) { self.showToast('続けて再生できないため止めました'); self.state.playingId = null; self.render(); return; }
+      setTimeout(function() { self.advance('error'); }, 1200);
+    });
+
+    audio.addEventListener('playing', function() { self.failStreak = 0; });
 
     document.getElementById('seekBar').addEventListener('change', function() {
       audio.currentTime = (this.value / 100) * audio.duration;
@@ -910,6 +920,35 @@ var app = {
   },
 
   // 次に再生する曲。シャッフル中はランダムに選ぶ
+  // 曲が終わった / 失敗した時に次へ進む。くり返し設定が切れていても、
+  // リストの最後に来るまでは止まらずに次の曲を続ける
+  advance: function(reason) {
+    var self = this;
+    var audio = document.getElementById('player');
+    if(reason === 'end' && this.state.loopMode === 2) {
+      audio.currentTime = 0;
+      audio.play().catch(function(){});
+      return;
+    }
+    var q = this.playQueue();
+    if(!q.length) return;
+    if(this.state.shuffle || this.state.loopMode === 1) {
+      var t = this.neighborTrack(1);
+      if(t) this.playTrack(t.id);
+      return;
+    }
+    // くり返しなし: 順番に進み、最後の曲まで来たら静かに終わる
+    var idx = q.findIndex(function(x) { return x.id === self.state.playingId; });
+    if(idx < 0) return;
+    if(idx + 1 >= q.length) {
+      this.state.playingId = null;
+      this.render();
+      this.showToast('最後の曲まで再生しました');
+      return;
+    }
+    this.playTrack(q[idx + 1].id);
+  },
+
   neighborTrack: function(dir) {
     var q = this.playQueue();
     if(!q.length) return null;
@@ -1224,7 +1263,19 @@ var app = {
     var self = this;
     track.hasAudio = true;
     track.driveAudioId = null;   // 差し替えたらDrive側も上げ直す
-    var store = this.db.transaction('tracks', 'readwrite').objectStore('tracks');
+    var finished = false;
+    var finish = function(ok) {
+      if(finished) return; finished = true;
+      if(!ok) track.hasAudio = false;
+      self.render();
+      self.showToast(ok ? message : '保存できませんでした（空き容量不足）: ' + track.title);
+      if(done) done();
+    };
+    var tx;
+    try { tx = this.db.transaction('tracks', 'readwrite'); }
+    catch(e) { this.noteStorageFull(e); finish(false); return; }
+    tx.onerror = tx.onabort = function() { self.noteStorageFull(tx.error); finish(false); };
+    var store = tx.objectStore('tracks');
     var getReq = store.get(track.id);
     getReq.onsuccess = function() {
       var rec = getReq.result || {id: track.id};
@@ -1233,12 +1284,12 @@ var app = {
       rec.syncData = track.syncData; rec.interludes = track.interludes || [];
       rec.driveAudioId = null;
       if(self.state.covers[track.id]) rec.cover = self.state.covers[track.id];
-      store.put(rec).onsuccess = function() {
-        self.render();
-        self.showToast(message);
-        if(done) done();
-      };
+      var p;
+      try { p = store.put(rec); } catch(e) { self.noteStorageFull(e); finish(false); return; }
+      p.onsuccess = function() { finish(true); };
+      p.onerror = function(ev) { ev.preventDefault(); self.noteStorageFull(p.error); finish(false); };
     };
+    getReq.onerror = function() { finish(false); };
   },
 
   askTrackForAudio: function(fileName, candidates, cb) {
@@ -1776,6 +1827,22 @@ var app = {
     }
     document.getElementById('driveStatus').innerHTML = st.join('<br>');
     document.getElementById('driveBackdrop').classList.add('open');
+    this.appendStorageStatus();
+  },
+
+  // 端末の空き容量。WAVは重いので、足りているかを見えるようにする
+  appendStorageStatus: function() {
+    var el = document.getElementById('driveStatus');
+    if(!el || !navigator.storage || !navigator.storage.estimate) return;
+    navigator.storage.estimate().then(function(q) {
+      var mb = function(n) { return (n / 1048576).toFixed(0) + 'MB'; };
+      var used = q.usage || 0, quota = q.quota || 0;
+      var line = 'この端末に置ける容量: ' + mb(used) + ' / ' + mb(quota) + ' 使用';
+      if(quota && used / quota > 0.8) {
+        line = '<span style="color:var(--accent)">⚠ ' + line + '（残りわずか。WAVは1曲40MB近くあります）</span>';
+      }
+      el.innerHTML += '<br>' + line;
+    }).catch(function(){});
   },
 
   driveSignIn: function() {
@@ -1987,16 +2054,45 @@ var app = {
     var self = this;
     this.showToast('Driveから音源を取得しています…');
     this.drive.getBlob(track.driveAudioId, function(blob) {
-      var store = self.db.transaction('tracks', 'readwrite').objectStore('tracks');
+      // 端末に保存できなくても、再生だけは必ず通す（WAVは1曲40MB近いので保存に失敗しやすい）
+      var done = false;
+      var play = function(cached) {
+        if(done) return; done = true;
+        if(cached) track.hasAudio = true;
+        cb(blob);
+      };
+      var tx;
+      try { tx = self.db.transaction('tracks', 'readwrite'); }
+      catch(e) { play(false); return; }
+      tx.onerror = tx.onabort = function() {
+        self.noteStorageFull(tx.error);
+        play(false);
+      };
+      var store = tx.objectStore('tracks');
       var g = store.get(track.id);
       g.onsuccess = function() {
         var rec = g.result || {id: track.id};
         rec.audio = blob; rec.title = track.title; rec.album = track.album;
         rec.lyrics = track.lyrics; rec.syncData = track.syncData;
         rec.interludes = track.interludes || []; rec.driveAudioId = track.driveAudioId;
-        store.put(rec).onsuccess = function() { track.hasAudio = true; cb(blob); };
+        var p;
+        try { p = store.put(rec); } catch(e) { self.noteStorageFull(e); play(false); return; }
+        p.onsuccess = function() { play(true); };
+        p.onerror = function(ev) { ev.preventDefault(); self.noteStorageFull(p.error); play(false); };
       };
+      g.onerror = function() { play(false); };
     }, err);
+  },
+
+  // 端末の保存領域が足りない時。1回だけ理由を出す（毎曲出すとうるさい）
+  noteStorageFull: function(e) {
+    var name = e && e.name ? e.name : '';
+    if(name === 'QuotaExceededError' || /quota/i.test(String(e && e.message))) {
+      if(!this.warnedQuota) {
+        this.warnedQuota = true;
+        this.showToast('端末の空き容量が足りず、この曲は保存できませんでした（再生はできます）。WAVは1曲40MB近くあるためです');
+      }
+    }
   },
 
   // 全曲の歌詞・同期データを1ファイルに（音源は含まない）
