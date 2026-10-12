@@ -272,6 +272,17 @@
   .classics-intro .cl-lead{margin:0 auto}
   .classics-intro .cl-sub{margin-top:48px}
   .classics-intro .cl-tracks{text-align:left;margin-top:18px}
+
+  /* Language switch stays available on mobile. */
+  .bar nav{margin-left:auto;margin-right:22px;gap:18px}
+  .language-switch{display:flex;gap:4px;flex-shrink:0;align-items:center}
+  .language-switch button{font-family:"Zen Kaku Gothic New",sans-serif;font-size:.72rem;line-height:1.5;padding:6px 10px;min-height:36px;border:1px solid transparent;background:transparent;color:var(--sub);cursor:pointer;border-radius:3px}
+  .language-switch button[aria-pressed="true"]{color:var(--crimson);border-color:var(--line-red);background:rgba(200,16,46,.05)}
+  .language-switch button:focus-visible{outline:2px solid var(--crimson);outline-offset:3px}
+  html[lang="en"] body{font-family:Georgia,"Zen Kaku Gothic New",serif}
+  html[lang="en"] .about-body p,html[lang="en"] .cl-lead,html[lang="en"] .release-lead{letter-spacing:normal}
+  html[lang="en"] .rtitle,html[lang="en"] .mvcap{overflow-wrap:anywhere;letter-spacing:normal}
+  @media(min-width:901px) and (max-width:1100px){.bar nav{gap:10px;margin-right:12px}.bar nav a{font-size:.6rem;letter-spacing:.08em}}
 </style>
 </head>
 <body>
@@ -288,13 +299,17 @@
     <a href="#live">Live</a>
     <a href="#about">About</a>
   </nav>
+  <div class="language-switch" role="group" aria-label="表示言語 / Display language">
+    <button type="button" data-site-language="ja" lang="ja" aria-pressed="true">日本語</button>
+    <button type="button" data-site-language="en" lang="en" aria-pressed="false">EN</button>
+  </div>
 </div>
 
 <header class="hero">
   <span class="eyebrow">Girls Hard Rock Band</span>
   <h1 class="wordmark">KNOX</h1>
   <div class="hero-photo">
-    <img src="images/knox-group-studio.jpg" alt="KNOX メンバー写真" width="1672" height="941" loading="eager">
+    <img src="images/knox-group-studio.jpg" alt="KNOX メンバー写真" data-i18n-alt-en="KNOX band members" width="1672" height="941" loading="eager">
     <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
   </div>
   <div class="scrollcue">SCROLL</div>
@@ -304,44 +319,44 @@
   <div class="wrap">
     <div class="sec-head">
       <span class="eyebrow">News</span>
-      <h2>最新情報</h2>
+      <h2><span data-i18n-en="Latest News">最新情報</span></h2>
       <div class="rule"></div>
     </div>
     <div class="news-list">
       <div class="news-item">
         <time datetime="2026-10-04">2026.10.04</time>
         <span class="ntag">Release</span>
-        <p>シングル『<a href="#release">少女A (feat. 椎名もた) [Cover]</a>』配信開始。MVも<a href="#mv">公開中</a>。</p>
+        <p data-i18n-en="Single &lt;a href=&quot;#release&quot;&gt;少女A (Shoujo A) (feat. siinamota) [Cover]&lt;/a&gt; is out now. Watch the &lt;a href=&quot;#mv&quot;&gt;music video&lt;/a&gt;.">シングル『<a href="#release"><span data-i18n-en="少女A (Shoujo A) (feat. siinamota) [Cover]">少女A (feat. 椎名もた) [Cover]</span></a>』配信開始。MVも<a href="#mv">公開中</a>。</p>
       </div>
       <div class="news-item">
         <time datetime="2026-09-26">2026.09.26</time>
         <span class="ntag">Release</span>
-        <p>シングル『<a href="#release">Heart Sutra</a>』『<a href="#release">咲き誇れ</a>』同時配信開始。</p>
+        <p data-i18n-en="Singles &lt;a href=&quot;#release&quot;&gt;Heart Sutra&lt;/a&gt; and &lt;a href=&quot;#release&quot;&gt;咲き誇れ (Sakihokore)&lt;/a&gt; are out now.">シングル『<a href="#release">Heart Sutra</a>』『<a href="#release"><span data-i18n-en="咲き誇れ (Sakihokore)">咲き誇れ</span></a>』同時配信開始。</p>
       </div>
       <div class="news-item">
         <time datetime="2026-09-15">2026.09.15</time>
         <span class="ntag">Release</span>
-        <p>シングル『<a href="#release">残夜のロンド</a>』配信開始。</p>
+        <p data-i18n-en="Single &lt;a href=&quot;#release&quot;&gt;残夜のロンド (Zanya no Rondo)&lt;/a&gt; is out now.">シングル『<a href="#release"><span data-i18n-en="残夜のロンド (Zanya no Rondo)">残夜のロンド</span></a>』配信開始。</p>
       </div>
       <div class="news-item">
         <time datetime="2026-09-14">2026.09.14</time>
         <span class="ntag">Release</span>
-        <p>シングル『<a href="#release">WORDS UNSAID</a>』配信開始。</p>
+        <p data-i18n-en="Single &lt;a href=&quot;#release&quot;&gt;WORDS UNSAID&lt;/a&gt; is out now.">シングル『<a href="#release">WORDS UNSAID</a>』配信開始。</p>
       </div>
       <div class="news-item">
         <time datetime="2026-09-06">2026.09.06</time>
         <span class="ntag">Release</span>
-        <p>ニューアルバム『<a href="#classics">PUBLIC DOMAIN</a>』配信開始。</p>
+        <p data-i18n-en="New album &lt;a href=&quot;#classics&quot;&gt;PUBLIC DOMAIN&lt;/a&gt; is out now.">ニューアルバム『<a href="#classics">PUBLIC DOMAIN</a>』配信開始。</p>
       </div>
       <div class="news-item">
         <time datetime="2026-08-31">2026.08.31</time>
         <span class="ntag">Release</span>
-        <p>アルバム『<a href="#release">KNOX CLASSICS: Nothing Sacred</a>』配信開始。</p>
+        <p data-i18n-en="Album &lt;a href=&quot;#release&quot;&gt;KNOX CLASSICS: Nothing Sacred&lt;/a&gt; is out now.">アルバム『<a href="#release">KNOX CLASSICS: Nothing Sacred</a>』配信開始。</p>
       </div>
       <div class="news-item">
         <time datetime="2026-06-12">2026.06.12</time>
         <span class="ntag">Release</span>
-        <p>1stフルアルバム『<a href="#album">KNOX</a>』配信開始。</p>
+        <p data-i18n-en="Debut full-length album &lt;a href=&quot;#album&quot;&gt;KNOX&lt;/a&gt; is out now.">1stフルアルバム『<a href="#album">KNOX</a>』配信開始。</p>
       </div>
     </div>
   </div>
@@ -351,37 +366,37 @@
   <div class="wrap">
     <div class="sec-head">
       <span class="eyebrow">Music Video</span>
-      <h2>映像作品</h2>
+      <h2><span data-i18n-en="Music Videos">映像作品</span></h2>
       <div class="rule"></div>
     </div>
     <div class="mvgrid">
       <figure class="mvitem">
-        <div class="video"><iframe src="https://www.youtube.com/embed/cgfXYyUuYCc" title="KNOX - 少女A (feat. 椎名もた) [Cover]" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
-        <figcaption class="mvcap">少女A (feat. 椎名もた) [Cover]<span class="mvc-sub">Music Video</span></figcaption>
+        <div class="video"><iframe src="https://www.youtube.com/embed/cgfXYyUuYCc" title="KNOX - 少女A (feat. 椎名もた) [Cover]" data-i18n-title-en="KNOX - 少女A (Shoujo A) (feat. siinamota) [Cover]" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+        <figcaption class="mvcap"><span data-i18n-en="少女A (Shoujo A) (feat. siinamota) [Cover]">少女A (feat. 椎名もた) [Cover]</span><span class="mvc-sub">Music Video</span></figcaption>
       </figure>
       <figure class="mvitem">
-        <div class="video"><iframe src="https://www.youtube.com/embed/Zn7-uQMYDSU" title="KNOX - 咲き誇れ" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
-        <figcaption class="mvcap">咲き誇れ<span class="mvc-sub">Music Video</span></figcaption>
+        <div class="video"><iframe src="https://www.youtube.com/embed/Zn7-uQMYDSU" title="KNOX - 咲き誇れ" data-i18n-title-en="KNOX - 咲き誇れ (Sakihokore)" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+        <figcaption class="mvcap"><span data-i18n-en="咲き誇れ (Sakihokore)">咲き誇れ</span><span class="mvc-sub">Music Video</span></figcaption>
       </figure>
       <figure class="mvitem">
-        <div class="video"><iframe src="https://www.youtube.com/embed/o7POzWAhcIA" title="KNOX - 残夜のロンド" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
-        <figcaption class="mvcap">残夜のロンド<span class="mvc-sub">Music Video</span></figcaption>
+        <div class="video"><iframe src="https://www.youtube.com/embed/o7POzWAhcIA" title="KNOX - 残夜のロンド" data-i18n-title-en="KNOX - 残夜のロンド (Zanya no Rondo)" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+        <figcaption class="mvcap"><span data-i18n-en="残夜のロンド (Zanya no Rondo)">残夜のロンド</span><span class="mvc-sub">Music Video</span></figcaption>
       </figure>
       <figure class="mvitem">
-        <div class="video"><iframe src="https://www.youtube.com/embed/QHce4hTynOw" title="KNOX - 終幕のアリア" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
-        <figcaption class="mvcap">終幕のアリア<span class="mvc-sub">Music Video</span></figcaption>
+        <div class="video"><iframe src="https://www.youtube.com/embed/QHce4hTynOw" title="KNOX - 終幕のアリア" data-i18n-title-en="KNOX - 終幕のアリア (Shuumaku no Aria)" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+        <figcaption class="mvcap"><span data-i18n-en="終幕のアリア (Shuumaku no Aria)">終幕のアリア</span><span class="mvc-sub">Music Video</span></figcaption>
       </figure>
       <figure class="mvitem">
-        <div class="video"><iframe src="https://www.youtube.com/embed/frZpmdE1Ang" title="KNOX - 激情のダンス" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
-        <figcaption class="mvcap">激情のダンス<span class="mvc-sub">Music Video</span></figcaption>
+        <div class="video"><iframe src="https://www.youtube.com/embed/frZpmdE1Ang" title="KNOX - 激情のダンス" data-i18n-title-en="KNOX - 激情のダンス (Gekijou no Dance)" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+        <figcaption class="mvcap"><span data-i18n-en="激情のダンス (Gekijou no Dance)">激情のダンス</span><span class="mvc-sub">Music Video</span></figcaption>
       </figure>
       <figure class="mvitem">
-        <div class="video"><iframe src="https://www.youtube.com/embed/WGaa3xm879I" title="KNOX - 追憶のワルツ" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
-        <figcaption class="mvcap">追憶のワルツ<span class="mvc-sub">Music Video</span></figcaption>
+        <div class="video"><iframe src="https://www.youtube.com/embed/WGaa3xm879I" title="KNOX - 追憶のワルツ" data-i18n-title-en="KNOX - 追憶のワルツ (Tsuioku no Waltz)" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+        <figcaption class="mvcap"><span data-i18n-en="追憶のワルツ (Tsuioku no Waltz)">追憶のワルツ</span><span class="mvc-sub">Music Video</span></figcaption>
       </figure>
       <figure class="mvitem">
-        <div class="video"><iframe src="https://www.youtube.com/embed/blsTc_HwmwA" title="KNOX - 最後のライブ" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
-        <figcaption class="mvcap">最後のライブ<span class="mvc-sub">Music Video</span></figcaption>
+        <div class="video"><iframe src="https://www.youtube.com/embed/blsTc_HwmwA" title="KNOX - 最後のライブ" data-i18n-title-en="KNOX - 最後のライブ (Saigo no Live)" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+        <figcaption class="mvcap"><span data-i18n-en="最後のライブ (Saigo no Live)">最後のライブ</span><span class="mvc-sub">Music Video</span></figcaption>
       </figure>
     </div>
   </div>
@@ -396,12 +411,12 @@
     <div class="cl-top">
       <span class="cl-badge">Out Now</span>
       <div class="cl-title">PUBLIC DOMAIN</div>
-      <p class="cl-lead">ラグタイムから唱歌、民謡まで——世界中のパブリックドメイン楽曲を、KNOXが解体して鳴らし直す全8曲。</p>
+      <p class="cl-lead"><span data-i18n-en="Eight tracks that take apart and rebuild public domain music from around the world — from ragtime to Japanese songs and folk melodies.">ラグタイムから唱歌、民謡まで——世界中のパブリックドメイン楽曲を、KNOXが解体して鳴らし直す全8曲。</span></p>
       <div class="cl-meta">
         <span><b>2026.09.06</b> Release</span>
-        <span>全8曲</span>
+        <span><span data-i18n-en="8 Tracks">全8曲</span></span>
         <span>Grunge / Alternative Rock</span>
-        <span>自主制作</span>
+        <span><span data-i18n-en="Independent Release">自主制作</span></span>
       </div>
     </div>
     <div class="cl-tracks">
@@ -415,18 +430,18 @@
       <div class="cl-track"><span class="num">08</span><span class="tt">GO ON WITHOUT ME</span><span class="aft">after Traditional</span></div>
     </div>
     <div class="cl-cta">
-      <a class="cl-btn" href="https://linkco.re/7H6hTc4P" target="_blank" rel="noopener">PUBLIC DOMAIN を聴く</a>
+      <a class="cl-btn" href="https://linkco.re/7H6hTc4P" target="_blank" rel="noopener"><span data-i18n-en="Listen to PUBLIC DOMAIN">PUBLIC DOMAIN を聴く</span></a>
       <a class="cl-btn ghost" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener">Artist Page</a>
     </div>
-    <p class="cl-note">作詞・編曲：Opan ／ 原曲：各作曲家（パブリックドメイン）</p>
-    <p class="cl-note">配信中の楽曲はすべてArtist Pageで試聴できます。</p>
+    <p class="cl-note"><span data-i18n-en="Lyrics &amp; arrangements: Opan / Original compositions: various composers (public domain)">作詞・編曲：Opan ／ 原曲：各作曲家（パブリックドメイン）</span></p>
+    <p class="cl-note"><span data-i18n-en="Preview all available releases on our Artist Page.">配信中の楽曲はすべてArtist Pageで試聴できます。</span></p>
 
     <div class="classics-divider"><span>KNOX CLASSICS</span></div>
 
     <div class="classics-intro">
-      <p class="cl-lead">クラシックの名旋律を、グランジの衝動で鳴らし直す——もう一つのKNOX、「KNOX CLASSICS」シリーズ。</p>
+      <p class="cl-lead"><span data-i18n-en="Classical melodies reimagined with the raw energy of grunge — discover another side of KNOX in the KNOX CLASSICS series.">クラシックの名旋律を、グランジの衝動で鳴らし直す——もう一つのKNOX、「KNOX CLASSICS」シリーズ。</span></p>
       <div class="cl-video">
-        <div class="video"><iframe src="https://www.youtube.com/embed/fus1NKvjtU8" title="KNOX CLASSICS 紹介" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+        <div class="video"><iframe src="https://www.youtube.com/embed/fus1NKvjtU8" title="KNOX CLASSICS 紹介" data-i18n-title-en="KNOX CLASSICS Introduction" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
         <div class="cl-vcap">KNOX CLASSICS Introduction</div>
       </div>
       <div class="cl-sub">Nothing Sacred</div>
@@ -441,8 +456,8 @@
         <div class="cl-track"><span class="num">08</span><span class="tt">I STILL HAVE TO GO</span><span class="aft">after Offenbach</span></div>
       </div>
       <div class="cl-cta">
-        <a class="cl-btn ghost" href="https://linkco.re/4Qn9Psym" target="_blank" rel="noopener">Nothing Sacred を聴く</a>
-        <a class="cl-btn ghost" href="https://linkco.re/7qPyM31V" target="_blank" rel="noopener">Sacred Noise を聴く</a>
+        <a class="cl-btn ghost" href="https://linkco.re/4Qn9Psym" target="_blank" rel="noopener"><span data-i18n-en="Listen to Nothing Sacred">Nothing Sacred を聴く</span></a>
+        <a class="cl-btn ghost" href="https://linkco.re/7qPyM31V" target="_blank" rel="noopener"><span data-i18n-en="Listen to Sacred Noise">Sacred Noise を聴く</span></a>
       </div>
     </div>
   </div>
@@ -458,23 +473,23 @@
       <div class="album-title">KNOX</div>
       <div class="album-meta">
         <span><b>2026.06.12</b> Release</span>
-        <span>全11曲</span>
+        <span><span data-i18n-en="11 Tracks">全11曲</span></span>
         <span>All Original Songs</span>
-        <span>自主制作</span>
+        <span><span data-i18n-en="Independent Release">自主制作</span></span>
       </div>
     </div>
     <div class="tracks">
       <div class="track"><span class="num">01</span><span class="tt">First Contact</span></div>
-      <div class="track"><span class="num">02</span><span class="tt">気まぐれカオス</span></div>
-      <div class="track"><span class="num">03</span><span class="tt">幻想のラッシュ</span></div>
-      <div class="track"><span class="num">04</span><span class="tt">終焉のロンド</span></div>
-      <div class="track"><span class="num">05</span><span class="tt">激情のダンス</span></div>
-      <div class="track"><span class="num">06</span><span class="tt">君へドライブ</span></div>
+      <div class="track"><span class="num">02</span><span class="tt"><span data-i18n-en="気まぐれカオス (Kimagure Chaos)">気まぐれカオス</span></span></div>
+      <div class="track"><span class="num">03</span><span class="tt"><span data-i18n-en="幻想のラッシュ (Gensou no Rush)">幻想のラッシュ</span></span></div>
+      <div class="track"><span class="num">04</span><span class="tt"><span data-i18n-en="終焉のロンド (Shuuen no Rondo)">終焉のロンド</span></span></div>
+      <div class="track"><span class="num">05</span><span class="tt"><span data-i18n-en="激情のダンス (Gekijou no Dance)">激情のダンス</span></span></div>
+      <div class="track"><span class="num">06</span><span class="tt"><span data-i18n-en="君へドライブ (Kimi e Drive)">君へドライブ</span></span></div>
       <div class="track"><span class="num">07</span><span class="tt">Laughter and Destruction</span></div>
-      <div class="track"><span class="num">08</span><span class="tt">刹那のステージ</span></div>
-      <div class="track"><span class="num">09</span><span class="tt">遠雷のスコール</span></div>
-      <div class="track"><span class="num">10</span><span class="tt">忘却のダイス</span></div>
-      <div class="track"><span class="num">11</span><span class="tt">最後のライブ</span></div>
+      <div class="track"><span class="num">08</span><span class="tt"><span data-i18n-en="刹那のステージ (Setsuna no Stage)">刹那のステージ</span></span></div>
+      <div class="track"><span class="num">09</span><span class="tt"><span data-i18n-en="遠雷のスコール (Enrai no Squall)">遠雷のスコール</span></span></div>
+      <div class="track"><span class="num">10</span><span class="tt"><span data-i18n-en="忘却のダイス (Boukyaku no Dice)">忘却のダイス</span></span></div>
+      <div class="track"><span class="num">11</span><span class="tt"><span data-i18n-en="最後のライブ (Saigo no Live)">最後のライブ</span></span></div>
     </div>
   </div>
 </section>
@@ -483,185 +498,185 @@
   <div class="wrap">
     <div class="sec-head">
       <span class="eyebrow">Now Streaming</span>
-      <h2>配信中</h2>
+      <h2><span data-i18n-en="Available Now">配信中</span></h2>
       <div class="rule"></div>
     </div>
-    <p class="release-lead">各音楽配信サイト・JOYSOUNDなど主要カラオケサービスにて、これまでのアルバム・シングルを配信中。</p>
+    <p class="release-lead"><span data-i18n-en="Explore our albums and singles on music streaming platforms. Our songs are also available on Japanese karaoke services including JOYSOUND.">各音楽配信サイト・JOYSOUNDなど主要カラオケサービスにて、これまでのアルバム・シングルを配信中。</span></p>
     <div class="rgrid">
       <figure class="rcard">
-        <a class="rcover" href="https://linkco.re/7H6hTc4P" target="_blank" rel="noopener" aria-label="KNOX: PUBLIC DOMAIN を聴く">
-          <img src="images/jacket-public-domain.jpg" alt="KNOX: PUBLIC DOMAIN ジャケット" width="600" height="600" loading="lazy"><span class="rtag">Album</span>
+        <a class="rcover" href="https://linkco.re/7H6hTc4P" target="_blank" rel="noopener" aria-label="KNOX: PUBLIC DOMAIN を聴く" data-i18n-aria-label-en="Listen to KNOX: PUBLIC DOMAIN">
+          <img src="images/jacket-public-domain.jpg" alt="KNOX: PUBLIC DOMAIN ジャケット" data-i18n-alt-en="KNOX: PUBLIC DOMAIN cover artwork" width="600" height="600" loading="lazy"><span class="rtag">Album</span>
           <span class="rplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
         </a>
         <figcaption>
           <div class="rtitle">KNOX: PUBLIC DOMAIN</div>
           <div class="rsub">Album</div>
-          <a class="rlisten" href="https://linkco.re/7H6hTc4P" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>聴く</a>
+          <a class="rlisten" href="https://linkco.re/7H6hTc4P" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span data-i18n-en="Listen">聴く</span></a>
         </figcaption>
       </figure>
       <figure class="rcard">
-        <a class="rcover" href="https://linkco.re/4Qn9Psym" target="_blank" rel="noopener" aria-label="KNOX CLASSICS: Nothing Sacred を聴く">
-          <img src="images/jacket-nothing-sacred.jpg" alt="KNOX CLASSICS: Nothing Sacred ジャケット" width="600" height="600" loading="lazy"><span class="rtag">Album</span>
+        <a class="rcover" href="https://linkco.re/4Qn9Psym" target="_blank" rel="noopener" aria-label="KNOX CLASSICS: Nothing Sacred を聴く" data-i18n-aria-label-en="Listen to KNOX CLASSICS: Nothing Sacred">
+          <img src="images/jacket-nothing-sacred.jpg" alt="KNOX CLASSICS: Nothing Sacred ジャケット" data-i18n-alt-en="KNOX CLASSICS: Nothing Sacred cover artwork" width="600" height="600" loading="lazy"><span class="rtag">Album</span>
           <span class="rplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
         </a>
         <figcaption>
           <div class="rtitle">KNOX CLASSICS: Nothing Sacred</div>
           <div class="rsub">Album</div>
-          <a class="rlisten" href="https://linkco.re/4Qn9Psym" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>聴く</a>
+          <a class="rlisten" href="https://linkco.re/4Qn9Psym" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span data-i18n-en="Listen">聴く</span></a>
         </figcaption>
       </figure>
       <figure class="rcard">
-        <a class="rcover" href="https://linkco.re/7qPyM31V" target="_blank" rel="noopener" aria-label="KNOX CLASSICS: Sacred Noise を聴く">
-          <img src="images/jacket-sacred-noise.jpg" alt="KNOX CLASSICS: Sacred Noise ジャケット" width="600" height="600" loading="lazy"><span class="rtag">Album</span>
+        <a class="rcover" href="https://linkco.re/7qPyM31V" target="_blank" rel="noopener" aria-label="KNOX CLASSICS: Sacred Noise を聴く" data-i18n-aria-label-en="Listen to KNOX CLASSICS: Sacred Noise">
+          <img src="images/jacket-sacred-noise.jpg" alt="KNOX CLASSICS: Sacred Noise ジャケット" data-i18n-alt-en="KNOX CLASSICS: Sacred Noise cover artwork" width="600" height="600" loading="lazy"><span class="rtag">Album</span>
           <span class="rplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
         </a>
         <figcaption>
           <div class="rtitle">KNOX CLASSICS: Sacred Noise</div>
           <div class="rsub">Album</div>
-          <a class="rlisten" href="https://linkco.re/7qPyM31V" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>聴く</a>
+          <a class="rlisten" href="https://linkco.re/7qPyM31V" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span data-i18n-en="Listen">聴く</span></a>
         </figcaption>
       </figure>
       <figure class="rcard">
-        <a class="rcover" href="https://linkco.re/rsN5aUrT" target="_blank" rel="noopener" aria-label="KNOX を聴く">
-          <img src="images/jacket-knox.jpg" alt="KNOX ジャケット" width="600" height="600" loading="lazy"><span class="rtag">Album</span>
+        <a class="rcover" href="https://linkco.re/rsN5aUrT" target="_blank" rel="noopener" aria-label="KNOX を聴く" data-i18n-aria-label-en="Listen to KNOX">
+          <img src="images/jacket-knox.jpg" alt="KNOX ジャケット" data-i18n-alt-en="KNOX cover artwork" width="600" height="600" loading="lazy"><span class="rtag">Album</span>
           <span class="rplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
         </a>
         <figcaption>
           <div class="rtitle">KNOX</div>
           <div class="rsub">1st ORIGINAL FULL ALBUM</div>
-          <a class="rlisten" href="https://linkco.re/rsN5aUrT" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>聴く</a>
+          <a class="rlisten" href="https://linkco.re/rsN5aUrT" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span data-i18n-en="Listen">聴く</span></a>
         </figcaption>
       </figure>
       <figure class="rcard">
-        <a class="rcover" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener" aria-label="少女A (feat. 椎名もた) [Cover] を聴く">
-          <img src="images/jacket-shoujo-a.jpg" alt="少女A (feat. 椎名もた) [Cover] ジャケット" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
+        <a class="rcover" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener" aria-label="少女A (feat. 椎名もた) [Cover] を聴く" data-i18n-aria-label-en="Listen to 少女A (Shoujo A) (feat. siinamota) [Cover]">
+          <img src="images/jacket-shoujo-a.jpg" alt="少女A (feat. 椎名もた) [Cover] ジャケット" data-i18n-alt-en="少女A (Shoujo A) (feat. siinamota) [Cover] cover artwork" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
           <span class="rplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
         </a>
         <figcaption>
-          <div class="rtitle">少女A (feat. 椎名もた) [Cover]</div>
+          <div class="rtitle"><span data-i18n-en="少女A (Shoujo A) (feat. siinamota) [Cover]">少女A (feat. 椎名もた) [Cover]</span></div>
           <div class="rsub">Single ・ 2026.10.04</div>
-          <a class="rlisten" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>聴く</a>
+          <a class="rlisten" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span data-i18n-en="Listen">聴く</span></a>
         </figcaption>
       </figure>
       <figure class="rcard">
-        <a class="rcover" href="https://linkco.re/FcFCghpe" target="_blank" rel="noopener" aria-label="Heart Sutra を聴く">
-          <img src="images/jacket-heart-sutra.jpg" alt="Heart Sutra ジャケット" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
+        <a class="rcover" href="https://linkco.re/FcFCghpe" target="_blank" rel="noopener" aria-label="Heart Sutra を聴く" data-i18n-aria-label-en="Listen to Heart Sutra">
+          <img src="images/jacket-heart-sutra.jpg" alt="Heart Sutra ジャケット" data-i18n-alt-en="Heart Sutra cover artwork" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
           <span class="rplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
         </a>
         <figcaption>
           <div class="rtitle">Heart Sutra</div>
           <div class="rsub">Single</div>
-          <a class="rlisten" href="https://linkco.re/FcFCghpe" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>聴く</a>
+          <a class="rlisten" href="https://linkco.re/FcFCghpe" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span data-i18n-en="Listen">聴く</span></a>
         </figcaption>
       </figure>
       <figure class="rcard">
-        <a class="rcover" href="https://linkco.re/fE8urp1F" target="_blank" rel="noopener" aria-label="咲き誇れ を聴く">
-          <img src="images/jacket-sakihokore.jpg" alt="咲き誇れ ジャケット" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
+        <a class="rcover" href="https://linkco.re/fE8urp1F" target="_blank" rel="noopener" aria-label="咲き誇れ を聴く" data-i18n-aria-label-en="Listen to 咲き誇れ (Sakihokore)">
+          <img src="images/jacket-sakihokore.jpg" alt="咲き誇れ ジャケット" data-i18n-alt-en="咲き誇れ (Sakihokore) cover artwork" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
           <span class="rplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
         </a>
         <figcaption>
-          <div class="rtitle">咲き誇れ</div>
+          <div class="rtitle"><span data-i18n-en="咲き誇れ (Sakihokore)">咲き誇れ</span></div>
           <div class="rsub">Single</div>
-          <a class="rlisten" href="https://linkco.re/fE8urp1F" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>聴く</a>
+          <a class="rlisten" href="https://linkco.re/fE8urp1F" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span data-i18n-en="Listen">聴く</span></a>
         </figcaption>
       </figure>
       <figure class="rcard">
-        <a class="rcover" href="https://linkco.re/GazT7aC7" target="_blank" rel="noopener" aria-label="残夜のロンド を聴く">
-          <img src="images/jacket-zanya-no-rondo.jpg" alt="残夜のロンド ジャケット" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
+        <a class="rcover" href="https://linkco.re/GazT7aC7" target="_blank" rel="noopener" aria-label="残夜のロンド を聴く" data-i18n-aria-label-en="Listen to 残夜のロンド (Zanya no Rondo)">
+          <img src="images/jacket-zanya-no-rondo.jpg" alt="残夜のロンド ジャケット" data-i18n-alt-en="残夜のロンド (Zanya no Rondo) cover artwork" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
           <span class="rplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
         </a>
         <figcaption>
-          <div class="rtitle">残夜のロンド</div>
+          <div class="rtitle"><span data-i18n-en="残夜のロンド (Zanya no Rondo)">残夜のロンド</span></div>
           <div class="rsub">Single</div>
-          <a class="rlisten" href="https://linkco.re/GazT7aC7" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>聴く</a>
+          <a class="rlisten" href="https://linkco.re/GazT7aC7" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span data-i18n-en="Listen">聴く</span></a>
         </figcaption>
       </figure>
       <figure class="rcard">
-        <a class="rcover" href="https://linkco.re/uMFABvVH" target="_blank" rel="noopener" aria-label="WORDS UNSAID を聴く">
-          <img src="images/jacket-words-unsaid.jpg" alt="WORDS UNSAID ジャケット" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
+        <a class="rcover" href="https://linkco.re/uMFABvVH" target="_blank" rel="noopener" aria-label="WORDS UNSAID を聴く" data-i18n-aria-label-en="Listen to WORDS UNSAID">
+          <img src="images/jacket-words-unsaid.jpg" alt="WORDS UNSAID ジャケット" data-i18n-alt-en="WORDS UNSAID cover artwork" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
           <span class="rplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
         </a>
         <figcaption>
           <div class="rtitle">WORDS UNSAID</div>
           <div class="rsub">Single</div>
-          <a class="rlisten" href="https://linkco.re/uMFABvVH" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>聴く</a>
+          <a class="rlisten" href="https://linkco.re/uMFABvVH" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span data-i18n-en="Listen">聴く</span></a>
         </figcaption>
       </figure>
       <figure class="rcard">
-        <a class="rcover" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener" aria-label="New World を聴く">
-          <img src="images/jacket-new-world.jpg" alt="New World ジャケット" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
+        <a class="rcover" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener" aria-label="New World を聴く" data-i18n-aria-label-en="Listen to New World">
+          <img src="images/jacket-new-world.jpg" alt="New World ジャケット" data-i18n-alt-en="New World cover artwork" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
           <span class="rplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
         </a>
         <figcaption>
           <div class="rtitle">New World</div>
           <div class="rsub">Single</div>
-          <a class="rlisten" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>聴く</a>
+          <a class="rlisten" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span data-i18n-en="Listen">聴く</span></a>
         </figcaption>
       </figure>
       <figure class="rcard">
-        <a class="rcover" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener" aria-label="Clumsy Love を聴く">
-          <img src="images/jacket-clumsy-love.jpg" alt="Clumsy Love ジャケット" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
+        <a class="rcover" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener" aria-label="Clumsy Love を聴く" data-i18n-aria-label-en="Listen to Clumsy Love">
+          <img src="images/jacket-clumsy-love.jpg" alt="Clumsy Love ジャケット" data-i18n-alt-en="Clumsy Love cover artwork" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
           <span class="rplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
         </a>
         <figcaption>
           <div class="rtitle">Clumsy Love</div>
           <div class="rsub">Single</div>
-          <a class="rlisten" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>聴く</a>
+          <a class="rlisten" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span data-i18n-en="Listen">聴く</span></a>
         </figcaption>
       </figure>
       <figure class="rcard">
-        <a class="rcover" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener" aria-label="焦熱のヴェロシティ を聴く">
-          <img src="images/jacket-shounetsu.jpg" alt="焦熱のヴェロシティ ジャケット" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
+        <a class="rcover" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener" aria-label="焦熱のヴェロシティ を聴く" data-i18n-aria-label-en="Listen to 焦熱のヴェロシティ (Shounetsu no Velocity)">
+          <img src="images/jacket-shounetsu.jpg" alt="焦熱のヴェロシティ ジャケット" data-i18n-alt-en="焦熱のヴェロシティ (Shounetsu no Velocity) cover artwork" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
           <span class="rplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
         </a>
         <figcaption>
-          <div class="rtitle">焦熱のヴェロシティ</div>
+          <div class="rtitle"><span data-i18n-en="焦熱のヴェロシティ (Shounetsu no Velocity)">焦熱のヴェロシティ</span></div>
           <div class="rsub">Single</div>
-          <a class="rlisten" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>聴く</a>
+          <a class="rlisten" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span data-i18n-en="Listen">聴く</span></a>
         </figcaption>
       </figure>
       <figure class="rcard">
-        <a class="rcover" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener" aria-label="疾走 を聴く">
-          <img src="images/jacket-shissou.jpg" alt="疾走 ジャケット" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
+        <a class="rcover" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener" aria-label="疾走 を聴く" data-i18n-aria-label-en="Listen to 疾走 (Shissou)">
+          <img src="images/jacket-shissou.jpg" alt="疾走 ジャケット" data-i18n-alt-en="疾走 (Shissou) cover artwork" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
           <span class="rplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
         </a>
         <figcaption>
-          <div class="rtitle">疾走</div>
+          <div class="rtitle"><span data-i18n-en="疾走 (Shissou)">疾走</span></div>
           <div class="rsub">Single</div>
-          <a class="rlisten" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>聴く</a>
+          <a class="rlisten" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span data-i18n-en="Listen">聴く</span></a>
         </figcaption>
       </figure>
       <figure class="rcard">
-        <a class="rcover" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener" aria-label="激情のダンス を聴く">
-          <img src="images/jacket-gekijo-no-dance.jpg" alt="激情のダンス ジャケット" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
+        <a class="rcover" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener" aria-label="激情のダンス を聴く" data-i18n-aria-label-en="Listen to 激情のダンス (Gekijou no Dance)">
+          <img src="images/jacket-gekijo-no-dance.jpg" alt="激情のダンス ジャケット" data-i18n-alt-en="激情のダンス (Gekijou no Dance) cover artwork" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
           <span class="rplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
         </a>
         <figcaption>
-          <div class="rtitle">激情のダンス</div>
+          <div class="rtitle"><span data-i18n-en="激情のダンス (Gekijou no Dance)">激情のダンス</span></div>
           <div class="rsub">Single</div>
-          <a class="rlisten" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>聴く</a>
+          <a class="rlisten" href="https://www.tunecore.co.jp/artists?id=1136558" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span data-i18n-en="Listen">聴く</span></a>
         </figcaption>
       </figure>
       <figure class="rcard">
-        <a class="rcover" href="https://music.youtube.com/playlist?list=OLAK5uy_nA5kWI-EpZsvLiswBYcW3QNqezB0jQoFc" target="_blank" rel="noopener" aria-label="追憶のワルツ を聴く">
-          <img src="images/jacket-tsuioku-no-waltz.jpg" alt="追憶のワルツ ジャケット" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
+        <a class="rcover" href="https://music.youtube.com/playlist?list=OLAK5uy_nA5kWI-EpZsvLiswBYcW3QNqezB0jQoFc" target="_blank" rel="noopener" aria-label="追憶のワルツ を聴く" data-i18n-aria-label-en="Listen to 追憶のワルツ (Tsuioku no Waltz)">
+          <img src="images/jacket-tsuioku-no-waltz.jpg" alt="追憶のワルツ ジャケット" data-i18n-alt-en="追憶のワルツ (Tsuioku no Waltz) cover artwork" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
           <span class="rplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
         </a>
         <figcaption>
-          <div class="rtitle">追憶のワルツ</div>
+          <div class="rtitle"><span data-i18n-en="追憶のワルツ (Tsuioku no Waltz)">追憶のワルツ</span></div>
           <div class="rsub">Single</div>
-          <a class="rlisten" href="https://music.youtube.com/playlist?list=OLAK5uy_nA5kWI-EpZsvLiswBYcW3QNqezB0jQoFc" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>聴く</a>
+          <a class="rlisten" href="https://music.youtube.com/playlist?list=OLAK5uy_nA5kWI-EpZsvLiswBYcW3QNqezB0jQoFc" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span data-i18n-en="Listen">聴く</span></a>
         </figcaption>
       </figure>
       <figure class="rcard">
-        <a class="rcover" href="https://music.youtube.com/playlist?list=OLAK5uy_lXCRFfF7QdQ9gbhihKYhVH7VqdxHJo84c" target="_blank" rel="noopener" aria-label="終幕のアリア を聴く">
-          <img src="images/jacket-shuumaku-no-aria.jpg" alt="終幕のアリア ジャケット" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
+        <a class="rcover" href="https://music.youtube.com/playlist?list=OLAK5uy_lXCRFfF7QdQ9gbhihKYhVH7VqdxHJo84c" target="_blank" rel="noopener" aria-label="終幕のアリア を聴く" data-i18n-aria-label-en="Listen to 終幕のアリア (Shuumaku no Aria)">
+          <img src="images/jacket-shuumaku-no-aria.jpg" alt="終幕のアリア ジャケット" data-i18n-alt-en="終幕のアリア (Shuumaku no Aria) cover artwork" width="600" height="600" loading="lazy"><span class="rtag">Single</span>
           <span class="rplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
         </a>
         <figcaption>
-          <div class="rtitle">終幕のアリア</div>
+          <div class="rtitle"><span data-i18n-en="終幕のアリア (Shuumaku no Aria)">終幕のアリア</span></div>
           <div class="rsub">Single</div>
-          <a class="rlisten" href="https://music.youtube.com/playlist?list=OLAK5uy_lXCRFfF7QdQ9gbhihKYhVH7VqdxHJo84c" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>聴く</a>
+          <a class="rlisten" href="https://music.youtube.com/playlist?list=OLAK5uy_lXCRFfF7QdQ9gbhihKYhVH7VqdxHJo84c" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span data-i18n-en="Listen">聴く</span></a>
         </figcaption>
       </figure>
     </div>
@@ -675,11 +690,11 @@
       <div class="rule"></div>
     </div>
     <div class="mgrid">
-      <div class="mcard"><div class="mphoto"><img src="images/member-ryo.jpg" alt="ryo" width="1086" height="1448" loading="lazy"></div><div class="minfo"><div class="role">Guitar</div><div class="nm">ryo</div><div class="inst">ギター</div></div></div>
-      <div class="mcard"><div class="mphoto"><img src="images/member-emi.jpg" alt="emi" width="1086" height="1448" loading="lazy"></div><div class="minfo"><div class="role">Bass</div><div class="nm">emi</div><div class="inst">ベース</div></div></div>
-      <div class="mcard"><div class="mphoto"><img src="images/member-tomo.jpg" alt="tomo" width="1086" height="1448" loading="lazy"></div><div class="minfo"><div class="role">Vocal</div><div class="nm">tomo</div><div class="inst">ボーカル</div></div></div>
-      <div class="mcard"><div class="mphoto"><img src="images/member-hazu.jpg" alt="hazu" width="1086" height="1448" loading="lazy"></div><div class="minfo"><div class="role">Drums</div><div class="nm">hazu</div><div class="inst">ドラム</div></div></div>
-      <div class="mcard"><div class="mphoto"><img src="images/member-kana.jpg" alt="kana" width="1086" height="1448" loading="lazy"></div><div class="minfo"><div class="role">Guitar</div><div class="nm">kana</div><div class="inst">ギター</div></div></div>
+      <div class="mcard"><div class="mphoto"><img src="images/member-ryo.jpg" alt="ryo" width="1086" height="1448" loading="lazy"></div><div class="minfo"><div class="role">Guitar</div><div class="nm">ryo</div><div class="inst"><span data-i18n-en="Guitar">ギター</span></div></div></div>
+      <div class="mcard"><div class="mphoto"><img src="images/member-emi.jpg" alt="emi" width="1086" height="1448" loading="lazy"></div><div class="minfo"><div class="role">Bass</div><div class="nm">emi</div><div class="inst"><span data-i18n-en="Bass">ベース</span></div></div></div>
+      <div class="mcard"><div class="mphoto"><img src="images/member-tomo.jpg" alt="tomo" width="1086" height="1448" loading="lazy"></div><div class="minfo"><div class="role">Vocal</div><div class="nm">tomo</div><div class="inst"><span data-i18n-en="Vocals">ボーカル</span></div></div></div>
+      <div class="mcard"><div class="mphoto"><img src="images/member-hazu.jpg" alt="hazu" width="1086" height="1448" loading="lazy"></div><div class="minfo"><div class="role">Drums</div><div class="nm">hazu</div><div class="inst"><span data-i18n-en="Drums">ドラム</span></div></div></div>
+      <div class="mcard"><div class="mphoto"><img src="images/member-kana.jpg" alt="kana" width="1086" height="1448" loading="lazy"></div><div class="minfo"><div class="role">Guitar</div><div class="nm">kana</div><div class="inst"><span data-i18n-en="Guitar">ギター</span></div></div></div>
     </div>
   </div>
 </section>
@@ -708,8 +723,8 @@
       <div class="rule"></div>
     </div>
     <div class="about-body">
-      <p>退廃と純白が同居する世界観で、激しさと叙情を鳴らすガールズハードロックバンド。重く歪んだギター、駆けるリズム、芯のあるボーカルが、幻想と現実のあいだを切り裂いていく。</p>
-      <p>自分たちの手で創り、自分たちの音で届ける——オリジナル曲を詰め込んだ1stフルアルバム『KNOX』から、世界中のパブリックドメイン楽曲を解体し鳴らし直す最新作『PUBLIC DOMAIN』まで、何も聖域にしない。</p>
+      <p><span data-i18n-en="KNOX is a girls hard rock band whose world brings together decadence and pure white, intensity and lyricism. Heavily distorted guitars, driving rhythms and powerful vocals cut through the space between fantasy and reality.">退廃と純白が同居する世界観で、激しさと叙情を鳴らすガールズハードロックバンド。重く歪んだギター、駆けるリズム、芯のあるボーカルが、幻想と現実のあいだを切り裂いていく。</span></p>
+      <p><span data-i18n-en="Created on our own terms and delivered through our own sound — from the original songs on our debut full-length album KNOX to the reimagined public domain music of PUBLIC DOMAIN, nothing is off limits.">自分たちの手で創り、自分たちの音で届ける——オリジナル曲を詰め込んだ1stフルアルバム『KNOX』から、世界中のパブリックドメイン楽曲を解体し鳴らし直す最新作『PUBLIC DOMAIN』まで、何も聖域にしない。</span></p>
     </div>
   </div>
 </section>
@@ -728,8 +743,8 @@
     <span class="clabel">Contact</span>
     <span class="cmail">info@knox-band.jp</span>
   </div>
-  <p class="ai-note">KNOXはAIを用いて制作されたバーチャルバンドです。アートワーク・楽曲・音声はAI技術により生成されています。</p>
-  <p class="karaoke-note">楽曲はJOYSOUNDなど主要カラオケサービスでも配信中。</p>
+  <p class="ai-note"><span data-i18n-en="KNOX is a virtual band created using AI. Its artwork, music and voices are generated with AI technology.">KNOXはAIを用いて制作されたバーチャルバンドです。アートワーク・楽曲・音声はAI技術により生成されています。</span></p>
+  <p class="karaoke-note"><span data-i18n-en="Songs are also available on Japanese karaoke services including JOYSOUND.">楽曲はJOYSOUNDなど主要カラオケサービスでも配信中。</span></p>
   <div class="copy">© 2026 KNOX. All Rights Reserved.</div>
 </footer>
 
@@ -762,6 +777,40 @@
     audio.addEventListener('timeupdate',function(){ if(current&&audio.duration){ var p=current.querySelector('.tprog>span'); if(p)p.style.width=(audio.currentTime/audio.duration*100)+'%'; } });
     audio.addEventListener('ended',function(){ if(current){ reset(current); } });
   })();
+</script>
+
+<script id="site-language">
+(function(){
+  'use strict';
+  var storageKey='knox-site-language';
+  var elements=Array.from(document.querySelectorAll('[data-i18n-en]'));
+  var originalHtml=elements.map(function(el){return el.innerHTML;});
+  var attributes=[];
+  ['alt','aria-label','title'].forEach(function(attr){
+    document.querySelectorAll('[data-i18n-'+attr+'-en]').forEach(function(el){
+      attributes.push({element:el,name:attr,ja:el.getAttribute(attr),en:el.getAttribute('data-i18n-'+attr+'-en')});
+    });
+  });
+  var metaSelectors=['meta[name="description"]','meta[property="og:description"]','meta[name="twitter:description"]'];
+  var meta=metaSelectors.map(function(selector){var el=document.querySelector(selector);return {element:el,ja:el ? el.getAttribute('content') : ''};});
+  var englishDescription='KNOX official website. Discover this AI-created virtual girls hard rock band, explore albums and singles, watch music videos, and listen on streaming platforms.';
+  var buttons=Array.from(document.querySelectorAll('[data-site-language]'));
+  function applyLanguage(language,persist){
+    language=language==='en' ? 'en' : 'ja';
+    document.documentElement.lang=language;
+    elements.forEach(function(el,i){el.innerHTML=language==='en' ? el.getAttribute('data-i18n-en') : originalHtml[i];});
+    attributes.forEach(function(item){item.element.setAttribute(item.name,item[language]);});
+    meta.forEach(function(item){if(item.element)item.element.setAttribute('content',language==='en' ? englishDescription : item.ja);});
+    buttons.forEach(function(button){button.setAttribute('aria-pressed',String(button.getAttribute('data-site-language')===language));});
+    if(persist){try{localStorage.setItem(storageKey,language);}catch(error){}}
+  }
+  var saved=null;
+  try{saved=localStorage.getItem(storageKey);}catch(error){}
+  var browserLanguage=navigator.language || (navigator.languages && navigator.languages[0]) || 'ja';
+  var initial=(saved==='ja'||saved==='en') ? saved : (/^ja(?:-|$)/i.test(browserLanguage) ? 'ja' : 'en');
+  applyLanguage(initial,false);
+  buttons.forEach(function(button){button.addEventListener('click',function(){applyLanguage(button.getAttribute('data-site-language'),true);});});
+})();
 </script>
 </body>
 </html>
